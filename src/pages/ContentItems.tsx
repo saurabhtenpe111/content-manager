@@ -1,0 +1,91 @@
+
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { CMSLayout } from '@/components/layout/CMSLayout';
+import { ContentItemList } from '@/components/content-item/ContentItemList';
+import { supabase } from '@/integrations/supabase/client';
+import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+
+const ContentItems: React.FC = () => {
+  const { contentTypeId } = useParams<{ contentTypeId: string }>();
+  const [contentTypeName, setContentTypeName] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  useEffect(() => {
+    const fetchContentType = async () => {
+      if (!contentTypeId) {
+        setError('Content type ID is required');
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        const { data, error } = await supabase
+          .from('content_types')
+          .select('name')
+          .eq('id', contentTypeId)
+          .single();
+        
+        if (error) throw error;
+        
+        if (data) {
+          setContentTypeName(data.name);
+        } else {
+          setError('Content type not found');
+        }
+      } catch (err: any) {
+        console.error('Error fetching content type:', err);
+        toast.error(`Failed to load content type: ${err.message}`);
+        setError('Failed to load content type');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchContentType();
+  }, [contentTypeId]);
+  
+  if (loading) {
+    return (
+      <CMSLayout>
+        <div className="flex justify-center items-center h-[50vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="ml-2">Loading...</span>
+        </div>
+      </CMSLayout>
+    );
+  }
+  
+  if (error) {
+    return (
+      <CMSLayout>
+        <div className="p-8 text-center">
+          <h2 className="text-2xl font-bold text-red-500 mb-4">Error</h2>
+          <p className="text-gray-600">{error}</p>
+        </div>
+      </CMSLayout>
+    );
+  }
+  
+  return (
+    <CMSLayout>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">{contentTypeName}</h1>
+          <p className="text-gray-600 mt-1">
+            Manage your {contentTypeName.toLowerCase()} content
+          </p>
+        </div>
+        
+        <ContentItemList 
+          contentTypeId={contentTypeId!}
+          contentTypeName={contentTypeName}
+        />
+      </div>
+    </CMSLayout>
+  );
+};
+
+export default ContentItems;

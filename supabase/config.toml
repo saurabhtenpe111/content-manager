@@ -1,0 +1,16 @@
+
+project_id = "tpooswmqipisupinkwyt"
+
+[api]
+enabled = true
+
+[db]
+# Removing the problematic shadow_database_schema setting
+
+[functions]
+# Changing serve = true to the correct map format
+[functions.serve]
+enabled = true
+
+[realtime]
+enabled = true
