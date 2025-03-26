@@ -1,146 +1,272 @@
 
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
+import { 
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
 import { useCmsStore } from '@/stores/cmsStore';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
-interface ContentTypeFormProps {
-  onClose?: () => void;
+export interface ContentTypeFormProps {
+  onClose: () => void;
+  initialData?: {
+    name: string;
+    description?: string;
+    apiId?: string;
+    apiIdPlural?: string;
+    isCollection?: boolean;
+  };
+  isComponent?: boolean;
 }
 
-export const ContentTypeForm: React.FC<ContentTypeFormProps> = ({ onClose }) => {
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [nameError, setNameError] = useState('');
-  const [loading, setLoading] = useState(false);
+const formSchema = z.object({
+  name: z.string().min(2, {
+    message: "Name must be at least 2 characters.",
+  }),
+  description: z.string().optional(),
+  apiId: z.string().min(2, {
+    message: "API ID must be at least 2 characters.",
+  }).optional(),
+  apiIdPlural: z.string().min(2, {
+    message: "API ID (Plural) must be at least 2 characters.",
+  }).optional(),
+  isCollection: z.boolean().optional(),
+});
 
+export const ContentTypeForm: React.FC<ContentTypeFormProps> = ({ 
+  onClose,
+  initialData,
+  isComponent = false
+}) => {
   const { addContentType } = useCmsStore();
-  const { user } = useAuth();
-
-  const validateName = (value: string) => {
-    if (!value.trim()) {
-      setNameError('Name is required');
-      return false;
-    }
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("basic");
+  
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: initialData?.name || '',
+      description: initialData?.description || '',
+      apiId: initialData?.apiId || '',
+      apiIdPlural: initialData?.apiIdPlural || '',
+      isCollection: initialData?.isCollection || true,
+    },
+  });
+  
+  function slugify(text: string) {
+    return text
+      .toLowerCase()
+      .replace(/\s+/g, '-')     // Replace spaces with -
+      .replace(/[^\w\-]+/g, '') // Remove all non-word chars
+      .replace(/\-\-+/g, '-')   // Replace multiple - with single -
+      .trim();                  // Trim - from start and end of text
+  }
+  
+  function pluralize(text: string) {
+    if (!text) return '';
+    if (text.endsWith('y')) return text.slice(0, -1) + 'ies';
+    if (text.endsWith('s')) return text + 'es';
+    return text + 's';
+  }
+  
+  const handleGenerateApiIds = () => {
+    const name = form.getValues('name');
+    if (!name) return;
     
-    // Check if name contains only alphanumeric characters and spaces
-    if (!/^[a-zA-Z0-9\s]+$/.test(value)) {
-      setNameError('Name can only contain letters, numbers, and spaces');
-      return false;
-    }
+    const apiId = slugify(name);
+    const apiIdPlural = pluralize(apiId);
     
-    setNameError('');
-    return true;
+    form.setValue('apiId', apiId);
+    form.setValue('apiIdPlural', apiIdPlural);
   };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateName(name)) {
-      return;
-    }
-    
-    if (!user) {
-      toast.error('You must be logged in to create a content type');
-      return;
-    }
-    
-    setLoading(true);
-    
+  
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      // Add to Supabase
-      const { data, error } = await supabase
-        .from('content_types')
-        .insert({
-          name,
-          description: description || null,
-          user_id: user.id
-        })
-        .select()
-        .single();
-      
-      if (error) {
-        // If the table doesn't exist, we'll try to add to local store anyway
-        console.error('Supabase error:', error);
-        
-        if (error.code === '42P01') { // relation does not exist
-          toast.error('Database tables are not set up yet. Please contact an administrator.');
-        } else {
-          throw error;
-        }
-      }
-      
-      // Add to local store regardless of DB success
-      // This allows the UI to work even if DB isn't fully set up yet
-      const newContentType = {
-        id: data?.id || crypto.randomUUID(),
-        name,
-        description,
+      const contentType = {
+        name: values.name,
+        description: values.description,
+        apiId: values.apiId,
+        apiIdPlural: values.apiIdPlural,
+        isCollection: values.isCollection !== false,
         fields: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
       };
       
-      addContentType(newContentType);
+      await addContentType(contentType);
       
-      toast.success('Content type created successfully!');
+      toast.success(`${values.name} created successfully!`);
+      onClose();
       
-      if (onClose) {
-        onClose();
+      // Navigate to the content type builder for this new type
+      const createdContentType = useCmsStore.getState().contentTypes.find(ct => ct.name === values.name);
+      if (createdContentType) {
+        navigate(`/content-types/${createdContentType.id}`);
       }
-    } catch (error: any) {
-      console.error('Error creating content type:', error);
-      toast.error(`Failed to create content type: ${error.message}`);
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      console.error('Failed to create content type:', error);
+      toast.error('Failed to create content type');
     }
   };
-
+  
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="name">Name</Label>
-        <Input
-          id="name"
-          value={name}
-          onChange={(e) => {
-            setName(e.target.value);
-            validateName(e.target.value);
-          }}
-          placeholder="e.g. Blog Post, Product, User"
-          className={nameError ? 'border-red-500' : ''}
-          disabled={loading}
-        />
-        {nameError && <p className="text-sm text-red-500">{nameError}</p>}
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="description">Description (Optional)</Label>
-        <Textarea
-          id="description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Describe what this content type is for..."
-          rows={3}
-          disabled={loading}
-        />
-      </div>
-      
-      <div className="flex justify-end space-x-2 pt-4">
-        {onClose && (
-          <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
-            Cancel
-          </Button>
-        )}
-        <Button type="submit" disabled={loading}>
-          {loading ? 'Creating...' : 'Create Content Type'}
-        </Button>
-      </div>
-    </form>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <Tabs defaultValue="basic" value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-4">
+            <TabsTrigger value="basic">Basic Settings</TabsTrigger>
+            <TabsTrigger value="advanced">Advanced Settings</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="basic" className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g. Product, Article, FAQ" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    A human-readable name for your content type
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description (Optional)</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="Describe this content type..." 
+                      className="min-h-[80px]"
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    A helpful description for your content type
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </TabsContent>
+          
+          <TabsContent value="advanced" className="space-y-4">
+            <FormField
+              control={form.control}
+              name="isCollection"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Type</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={value => field.onChange(value === 'true')}
+                      defaultValue={field.value ? 'true' : 'false'}
+                      className="flex flex-col space-y-1"
+                    >
+                      <div className="flex items-center space-x-2 border p-4 rounded-md hover:bg-gray-50">
+                        <RadioGroupItem value="true" id="collection" />
+                        <FormLabel htmlFor="collection" className="font-normal flex-1">
+                          <div className="font-semibold">Collection Type</div>
+                          <div className="text-sm text-muted-foreground">
+                            Best for multiple instances like articles, products, etc.
+                          </div>
+                        </FormLabel>
+                      </div>
+                      <div className="flex items-center space-x-2 border p-4 rounded-md hover:bg-gray-50">
+                        <RadioGroupItem value="false" id="single" />
+                        <FormLabel htmlFor="single" className="font-normal flex-1">
+                          <div className="font-semibold">Single Type</div>
+                          <div className="text-sm text-muted-foreground">
+                            Best for single instance like about us, homepage, etc.
+                          </div>
+                        </FormLabel>
+                      </div>
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <div className="space-y-4 pt-2">
+              <div className="flex justify-between items-center">
+                <FormLabel>API Settings</FormLabel>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleGenerateApiIds}
+                >
+                  Generate from name
+                </Button>
+              </div>
+              
+              <FormField
+                control={form.control}
+                name="apiId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>API ID (Singular)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. product, article" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      The UID is used to generate the API routes and database tables/collections
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="apiIdPlural"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>API ID (Plural)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. products, articles" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Pluralized API ID
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </TabsContent>
+        </Tabs>
+        
+        <div className="flex justify-end space-x-2 pt-4">
+          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+          {activeTab === "basic" ? (
+            <Button type="button" onClick={() => setActiveTab("advanced")}>Next</Button>
+          ) : (
+            <Button type="submit">Create</Button>
+          )}
+        </div>
+      </form>
+    </Form>
   );
 };

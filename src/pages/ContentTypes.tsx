@@ -57,7 +57,14 @@ const ContentTypes: React.FC = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <ContentTypeForm onClose={() => setIsDialogOpen(false)} />
+          <ContentTypeForm 
+            onClose={() => setIsDialogOpen(false)} 
+            initialData={{
+              name: 'New Collection',
+              description: 'A new collection type',
+              isCollection: true
+            }}
+          />
         </DialogContent>
       </Dialog>
       
@@ -77,6 +84,7 @@ const ContentTypes: React.FC = () => {
             initialData={{
               name: 'New Component',
               description: 'A reusable component for your content types',
+              isCollection: false
             }}
           />
         </DialogContent>

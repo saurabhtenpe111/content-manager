@@ -1,498 +1,446 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { CMSLayout } from '@/components/layout/CMSLayout';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle,
-  CardFooter
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle
 } from '@/components/ui/card';
 import { 
-  Tabs, 
-  TabsContent, 
-  TabsList, 
-  TabsTrigger 
-} from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Search, Plus, GripVertical, ChevronDown, AlertCircle } from 'lucide-react';
-import { FieldType, Field, useCmsStore, ContentType } from '@/stores/cmsStore';
-import { FieldRenderer } from '@/components/fields/FieldRenderer';
-import { useNavigate } from 'react-router-dom';
+  AlignJustify,
+  Type,
+  Hash,
+  Mail,
+  Key,
+  Calendar,
+  List,
+  Check,
+  RadioIcon,
+  File,
+  ToggleLeft,
+  Sliders,
+  Palette,
+  Component,
+  ChevronLeft,
+  Search,
+  Filter,
+  Star
+} from 'lucide-react';
+import { FieldType, useCmsStore, Field } from '@/stores/cmsStore';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useNavigate } from 'react-router-dom';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
 
-interface FieldTemplate {
-  id: string;
-  type: FieldType;
-  name: string;
-  label: string;
-  description: string;
-  placeholder?: string;
-  defaultValue?: any;
-  options?: { label: string; value: string }[];
-  validation?: { required: boolean };
-}
+type FieldCategory = 'text' | 'choice' | 'date' | 'media' | 'relation' | 'custom';
 
-const FieldsLibrary: React.FC = () => {
-  const [searchTerm, setSearchTerm] = useState('');
+const FieldsLibrary = () => {
   const navigate = useNavigate();
-  const { contentTypes, activeContentTypeId, setActiveContentType, addField, fetchContentTypes } = useCmsStore();
-  const [selectedContentTypeId, setSelectedContentTypeId] = useState<string | null>(activeContentTypeId);
+  const { contentTypes, activeContentTypeId } = useCmsStore();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<FieldCategory | 'all'>('all');
+  const [favorites, setFavorites] = useState<string[]>([]);
   
-  useEffect(() => {
-    fetchContentTypes();
-  }, [fetchContentTypes]);
+  const activeContentType = contentTypes.find(ct => ct.id === activeContentTypeId);
   
-  useEffect(() => {
-    if (activeContentTypeId && (!selectedContentTypeId || activeContentTypeId !== selectedContentTypeId)) {
-      setSelectedContentTypeId(activeContentTypeId);
-    }
-  }, [activeContentTypeId, selectedContentTypeId]);
-  
-  const fieldTemplates: FieldTemplate[] = [
+  const fieldDefinitions = [
     {
-      id: 'text-field',
       type: 'text',
-      name: 'textField',
-      label: 'Text Field',
-      description: 'Single line text input for short text.',
-      placeholder: 'Enter text...',
-      validation: { required: false },
+      name: 'Short text',
+      icon: <Type size={20} />,
+      description: 'Small text: titles, names, tags',
+      category: 'text' as FieldCategory
     },
     {
-      id: 'textarea-field',
       type: 'textarea',
-      name: 'textareaField',
-      label: 'Text Area',
-      description: 'Multi-line text input for longer content.',
-      placeholder: 'Enter description...',
-      validation: { required: false },
+      name: 'Long text',
+      icon: <AlignJustify size={20} />,
+      description: 'Long text: paragraphs, descriptions',
+      category: 'text' as FieldCategory
     },
     {
-      id: 'number-field',
       type: 'number',
-      name: 'numberField',
-      label: 'Number',
-      description: 'Numeric input field with validation.',
-      placeholder: 'Enter a number...',
-      defaultValue: '',
-      validation: { required: false },
+      name: 'Number',
+      icon: <Hash size={20} />,
+      description: 'Numbers: integers, decimals',
+      category: 'text' as FieldCategory
     },
     {
-      id: 'email-field',
       type: 'email',
-      name: 'emailField',
-      label: 'Email',
-      description: 'Input field with email validation.',
-      placeholder: 'email@example.com',
-      validation: { required: false },
+      name: 'Email',
+      icon: <Mail size={20} />,
+      description: 'Email addresses',
+      category: 'text' as FieldCategory
     },
     {
-      id: 'password-field',
       type: 'password',
-      name: 'passwordField',
-      label: 'Password',
-      description: 'Secure password input with masking.',
-      placeholder: '••••••••',
-      validation: { required: false },
+      name: 'Password',
+      icon: <Key size={20} />,
+      description: 'Password field with masking',
+      category: 'text' as FieldCategory
     },
     {
-      id: 'url-field',
-      type: 'url',
-      name: 'urlField',
-      label: 'URL',
-      description: 'Input field for website URLs.',
-      placeholder: 'https://example.com',
-      validation: { required: false },
-    },
-    {
-      id: 'date-field',
       type: 'date',
-      name: 'dateField',
-      label: 'Date',
-      description: 'Date picker for selecting dates.',
-      validation: { required: false },
+      name: 'Date',
+      icon: <Calendar size={20} />,
+      description: 'Date picker',
+      category: 'date' as FieldCategory
     },
     {
-      id: 'dropdown-field',
       type: 'dropdown',
-      name: 'dropdownField',
-      label: 'Dropdown',
-      description: 'Select one option from a dropdown list.',
-      options: [
-        { label: 'Option 1', value: 'option1' },
-        { label: 'Option 2', value: 'option2' },
-        { label: 'Option 3', value: 'option3' },
-      ],
-      validation: { required: false },
+      name: 'Dropdown',
+      icon: <List size={20} />,
+      description: 'Dropdown selection',
+      category: 'choice' as FieldCategory
     },
     {
-      id: 'checkbox-field',
       type: 'checkbox',
-      name: 'checkboxField',
-      label: 'Checkbox',
-      description: 'Boolean input for yes/no or true/false values.',
-      validation: { required: false },
+      name: 'Checkbox',
+      icon: <Check size={20} />,
+      description: 'Boolean: true or false',
+      category: 'choice' as FieldCategory
     },
     {
-      id: 'checkboxes-field',
-      type: 'checkboxes',
-      name: 'checkboxesField',
-      label: 'Checkboxes Group',
-      description: 'Select multiple options from choices.',
-      options: [
-        { label: 'Option 1', value: 'option1' },
-        { label: 'Option 2', value: 'option2' },
-        { label: 'Option 3', value: 'option3' },
-      ],
-      validation: { required: false },
-    },
-    {
-      id: 'radio-field',
       type: 'radio',
-      name: 'radioField',
-      label: 'Radio Group',
-      description: 'Select a single option from multiple choices.',
-      options: [
-        { label: 'Option 1', value: 'option1' },
-        { label: 'Option 2', value: 'option2' },
-        { label: 'Option 3', value: 'option3' },
-      ],
-      validation: { required: false },
+      name: 'Radio',
+      icon: <RadioIcon size={20} />,
+      description: 'Choose one from several options',
+      category: 'choice' as FieldCategory
     },
     {
-      id: 'file-field',
       type: 'file',
-      name: 'fileField',
-      label: 'File Upload',
-      description: 'Upload files with format validation.',
-      validation: { required: false },
+      name: 'Media',
+      icon: <File size={20} />,
+      description: 'Files and images',
+      category: 'media' as FieldCategory
     },
     {
-      id: 'toggle-field',
       type: 'toggle',
-      name: 'toggleField',
-      label: 'Toggle Switch',
-      description: 'Switch control for boolean values.',
-      validation: { required: false },
+      name: 'Toggle',
+      icon: <ToggleLeft size={20} />,
+      description: 'On/Off switch',
+      category: 'choice' as FieldCategory
     },
     {
-      id: 'slider-field',
       type: 'slider',
-      name: 'sliderField',
-      label: 'Slider',
-      description: 'Range selector for numeric values.',
-      defaultValue: 50,
-      validation: { required: false },
+      name: 'Slider',
+      icon: <Sliders size={20} />,
+      description: 'Range selection',
+      category: 'choice' as FieldCategory
     },
     {
-      id: 'color-field',
       type: 'color',
-      name: 'colorField',
-      label: 'Color Picker',
-      description: 'Select colors using a visual picker.',
-      defaultValue: '#3B82F6',
-      validation: { required: false },
+      name: 'Color',
+      icon: <Palette size={20} />,
+      description: 'Color picker',
+      category: 'choice' as FieldCategory
     },
+    {
+      type: 'component',
+      name: 'Component',
+      icon: <Component size={20} />,
+      description: 'Group of fields',
+      category: 'custom' as FieldCategory
+    }
   ];
   
-  const textFields = fieldTemplates.filter((field) => 
-    field.type === 'text' || field.type === 'textarea' || field.type === 'email' || 
-    field.type === 'password' || field.type === 'url'
-  );
-  
-  const numberFields = fieldTemplates.filter((field) => 
-    field.type === 'number' || field.type === 'slider'
-  );
-  
-  const selectionFields = fieldTemplates.filter((field) => 
-    field.type === 'dropdown' || field.type === 'checkbox' || field.type === 'checkboxes' || 
-    field.type === 'radio' || field.type === 'toggle'
-  );
-  
-  const otherFields = fieldTemplates.filter((field) => 
-    field.type === 'date' || field.type === 'file' || field.type === 'color'
-  );
-  
-  const filteredFields = fieldTemplates.filter((field) => 
-    field.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    field.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const handleAddToContentType = (field: FieldTemplate) => {
-    if (!selectedContentTypeId) {
-      toast.error("No content type selected. Please select or create a content type first.");
-      return;
+  const toggleFavorite = (type: string) => {
+    if (favorites.includes(type)) {
+      setFavorites(favorites.filter(t => t !== type));
+    } else {
+      setFavorites([...favorites, type]);
     }
-
-    setActiveContentType(selectedContentTypeId);
-
-    const newField = {
-      name: field.name,
-      label: field.label,
-      type: field.type,
-      description: field.description,
-      placeholder: field.placeholder,
-      defaultValue: field.defaultValue,
-      options: field.options,
-      validation: field.validation
-    };
-
-    addField(selectedContentTypeId, newField)
-      .then(() => {
-        toast.success(`Added ${field.label} field to content type`);
-        
-        navigate(`/content-types/${selectedContentTypeId}`);
-      })
-      .catch((error) => {
-        toast.error(`Failed to add field: ${error.message}`);
-      });
   };
   
-  const handleDragStart = (e: React.DragEvent, field: FieldTemplate) => {
-    e.dataTransfer.setData('field-type', field.type);
+  const handleFieldDragStart = (e: React.DragEvent, fieldDef: any) => {
+    e.dataTransfer.setData('field-type', fieldDef.type);
+    
+    const field: Omit<Field, 'id'> = {
+      name: fieldDef.type.toLowerCase(),
+      label: fieldDef.name,
+      type: fieldDef.type as FieldType,
+      description: fieldDef.description,
+      placeholder: `Enter ${fieldDef.type.toLowerCase()}...`,
+      validation: {
+        required: false
+      }
+    };
+    
+    if (fieldDef.type === 'dropdown' || fieldDef.type === 'radio') {
+      field.options = [
+        { label: 'Option 1', value: 'option1' },
+        { label: 'Option 2', value: 'option2' },
+        { label: 'Option 3', value: 'option3' }
+      ];
+    }
+    
     e.dataTransfer.setData('field-data', JSON.stringify(field));
     
-    const dragPreview = document.createElement('div');
-    dragPreview.classList.add('bg-white', 'p-2', 'border', 'border-cms-blue', 'rounded', 'text-xs', 'shadow-md');
-    dragPreview.textContent = field.label;
-    document.body.appendChild(dragPreview);
-    e.dataTransfer.setDragImage(dragPreview, 0, 0);
+    // Create and append a custom drag image
+    const dragImage = document.createElement('div');
+    dragImage.className = 'px-3 py-2 bg-white border rounded shadow text-sm flex items-center';
+    dragImage.innerHTML = `
+      <span class="mr-2">${fieldDef.icon.type}</span>
+      <span>${fieldDef.name}</span>
+    `;
+    document.body.appendChild(dragImage);
+    e.dataTransfer.setDragImage(dragImage, 20, 20);
     
     setTimeout(() => {
-      document.body.removeChild(dragPreview);
+      document.body.removeChild(dragImage);
     }, 0);
   };
   
-  const handleCreateContentType = () => {
-    navigate('/content-types/new');
-  };
+  const filteredFields = fieldDefinitions.filter(field => {
+    const matchesSearch = field.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          field.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === 'all' || field.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+  
+  const recentContentTypes = contentTypes.slice(0, 3);
   
   return (
     <CMSLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-cms-gray-900">Fields Library</h1>
-          <p className="text-cms-gray-600 mt-1">
-            Explore available field types and their configurations. Drag fields to your content type or click to add them.
-          </p>
+        <div className="flex items-center">
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={() => navigate(-1)}
+            className="mr-4"
+          >
+            <ChevronLeft size={18} />
+          </Button>
+          
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Field Library</h1>
+            <p className="text-gray-600 mt-1">
+              Drag and drop fields to your content types
+            </p>
+          </div>
         </div>
         
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between">
-          <div className="relative w-full max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-cms-gray-400" size={18} />
-            <Input 
-              placeholder="Search fields..." 
-              className="pl-10"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          
-          <div className="w-full sm:w-auto flex gap-2 items-center">
-            <Select 
-              value={selectedContentTypeId || ""} 
-              onValueChange={(value) => {
-                setSelectedContentTypeId(value);
-                setActiveContentType(value);
-              }}
-            >
-              <SelectTrigger className="w-full sm:w-[240px]">
-                <SelectValue placeholder="Select content type" />
-              </SelectTrigger>
-              <SelectContent>
-                {contentTypes.length === 0 ? (
-                  <div className="p-2 text-sm text-gray-500">
-                    No content types available. Create one first.
-                  </div>
-                ) : (
-                  contentTypes.map((contentType) => (
-                    <SelectItem 
-                      key={contentType.id} 
-                      value={contentType.id}
-                    >
-                      {contentType.name}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+          <div className="md:col-span-3 space-y-6">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle>Categories</CardTitle>
+              </CardHeader>
+              <CardContent className="px-2">
+                <Tabs 
+                  defaultValue="all" 
+                  orientation="vertical" 
+                  value={selectedCategory}
+                  onValueChange={(value) => setSelectedCategory(value as FieldCategory | 'all')}
+                  className="w-full"
+                >
+                  <TabsList className="flex flex-col items-stretch h-auto">
+                    <TabsTrigger value="all" className="justify-start text-left px-4 mb-1">
+                      All Fields
+                    </TabsTrigger>
+                    <TabsTrigger value="text" className="justify-start text-left px-4 mb-1">
+                      Text Fields
+                    </TabsTrigger>
+                    <TabsTrigger value="choice" className="justify-start text-left px-4 mb-1">
+                      Choice Fields
+                    </TabsTrigger>
+                    <TabsTrigger value="date" className="justify-start text-left px-4 mb-1">
+                      Date Fields
+                    </TabsTrigger>
+                    <TabsTrigger value="media" className="justify-start text-left px-4 mb-1">
+                      Media Fields
+                    </TabsTrigger>
+                    <TabsTrigger value="custom" className="justify-start text-left px-4 mb-1">
+                      Custom Fields
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </CardContent>
+            </Card>
             
-            <Button onClick={handleCreateContentType}>
-              <Plus size={16} className="mr-2" />
-              New Type
-            </Button>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle>Recent Content Types</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {recentContentTypes.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No content types yet</p>
+                ) : (
+                  <div className="space-y-2">
+                    {recentContentTypes.map(contentType => (
+                      <Button 
+                        key={contentType.id}
+                        variant="ghost" 
+                        className="w-full justify-start text-left" 
+                        onClick={() => navigate(`/content-types/${contentType.id}`)}
+                      >
+                        {contentType.name}
+                        <Badge variant="outline" className="ml-2">
+                          {contentType.fields.length} fields
+                        </Badge>
+                      </Button>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+          
+          <div className="md:col-span-9 space-y-6">
+            <div className="flex items-center space-x-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Search fields..."
+                  className="pl-8"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon">
+                    <Filter className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setSelectedCategory('all')}>
+                    All Fields
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSelectedCategory('text')}>
+                    Text Fields
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSelectedCategory('choice')}>
+                    Choice Fields
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredFields.map((field) => (
+                <Card 
+                  key={field.type}
+                  className="cursor-grab hover:border-primary hover:shadow-sm transition-all"
+                  draggable
+                  onDragStart={(e) => handleFieldDragStart(e, field)}
+                >
+                  <CardHeader className="pb-2">
+                    <div className="flex justify-between">
+                      <div className="flex items-center">
+                        <div className="h-8 w-8 rounded-md bg-gray-100 flex items-center justify-center mr-2">
+                          {field.icon}
+                        </div>
+                        <CardTitle className="text-base font-medium">{field.name}</CardTitle>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-7 w-7 opacity-50 hover:opacity-100"
+                        onClick={() => toggleFavorite(field.type)}
+                      >
+                        <Star 
+                          size={14}
+                          className={favorites.includes(field.type) ? "fill-yellow-400 text-yellow-400" : ""}
+                        />
+                      </Button>
+                    </div>
+                    <CardDescription>{field.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="p-2 border rounded bg-gray-50">
+                      {field.type === 'text' && (
+                        <Input placeholder="Text field" disabled />
+                      )}
+                      {field.type === 'textarea' && (
+                        <Textarea placeholder="Textarea field" disabled rows={2} />
+                      )}
+                      {field.type === 'number' && (
+                        <Input type="number" placeholder="0" disabled />
+                      )}
+                      {field.type === 'email' && (
+                        <Input type="email" placeholder="Email field" disabled />
+                      )}
+                      {field.type === 'password' && (
+                        <Input type="password" placeholder="Password" disabled />
+                      )}
+                      {field.type === 'date' && (
+                        <Input type="date" disabled />
+                      )}
+                      {field.type === 'dropdown' && (
+                        <div className="border rounded p-2 text-sm text-muted-foreground">
+                          Dropdown selection
+                        </div>
+                      )}
+                      {field.type === 'checkbox' && (
+                        <div className="flex items-center">
+                          <input type="checkbox" disabled className="mr-2" />
+                          <Label className="text-sm">Checkbox option</Label>
+                        </div>
+                      )}
+                      {field.type === 'radio' && (
+                        <div className="flex items-center">
+                          <input type="radio" disabled className="mr-2" />
+                          <Label className="text-sm">Radio option</Label>
+                        </div>
+                      )}
+                      {field.type === 'file' && (
+                        <Input type="file" disabled />
+                      )}
+                      {field.type === 'toggle' && (
+                        <div className="flex justify-between items-center">
+                          <Label className="text-sm">Toggle option</Label>
+                          <div className="h-5 w-10 bg-gray-300 rounded-full"></div>
+                        </div>
+                      )}
+                      {field.type === 'slider' && (
+                        <div className="py-4">
+                          <div className="h-1 bg-gray-300 rounded-full"></div>
+                        </div>
+                      )}
+                      {field.type === 'color' && (
+                        <div className="flex space-x-2">
+                          <div className="h-8 w-8 bg-blue-500 rounded"></div>
+                          <Input value="#3b82f6" disabled />
+                        </div>
+                      )}
+                      {field.type === 'component' && (
+                        <div className="p-2 border-2 border-dashed border-gray-300 rounded text-center text-sm text-muted-foreground">
+                          <Component size={16} className="mx-auto mb-1" />
+                          Reusable component
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                  <CardFooter className="pt-0">
+                    <div className="w-full text-xs text-muted-foreground">
+                      <span className="inline-block bg-gray-100 rounded px-2 py-0.5">{field.type}</span>
+                    </div>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
           </div>
         </div>
-        
-        {contentTypes.length === 0 && (
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              You need to create a content type before you can add fields. 
-              <Button 
-                variant="link" 
-                onClick={handleCreateContentType} 
-                className="px-1 h-auto"
-              >
-                Create your first content type
-              </Button>
-            </AlertDescription>
-          </Alert>
-        )}
-        
-        <Tabs defaultValue="all" className="w-full">
-          <TabsList>
-            <TabsTrigger value="all">All Fields</TabsTrigger>
-            <TabsTrigger value="text">Text</TabsTrigger>
-            <TabsTrigger value="number">Numbers</TabsTrigger>
-            <TabsTrigger value="selection">Selection</TabsTrigger>
-            <TabsTrigger value="other">Other</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="all">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-              {filteredFields.map((field) => (
-                <FieldCard 
-                  key={field.id} 
-                  field={field as Field} 
-                  onDragStart={(e) => handleDragStart(e, field)}
-                  onAdd={() => handleAddToContentType(field)}
-                  selectedContentTypeId={selectedContentTypeId}
-                />
-              ))}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="text">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-              {textFields.filter((field) => 
-                field.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                field.description.toLowerCase().includes(searchTerm.toLowerCase())
-              ).map((field) => (
-                <FieldCard 
-                  key={field.id} 
-                  field={field as Field} 
-                  onDragStart={(e) => handleDragStart(e, field)}
-                  onAdd={() => handleAddToContentType(field)}
-                  selectedContentTypeId={selectedContentTypeId}
-                />
-              ))}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="number">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-              {numberFields.filter((field) => 
-                field.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                field.description.toLowerCase().includes(searchTerm.toLowerCase())
-              ).map((field) => (
-                <FieldCard 
-                  key={field.id} 
-                  field={field as Field} 
-                  onDragStart={(e) => handleDragStart(e, field)}
-                  onAdd={() => handleAddToContentType(field)}
-                  selectedContentTypeId={selectedContentTypeId}
-                />
-              ))}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="selection">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-              {selectionFields.filter((field) => 
-                field.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                field.description.toLowerCase().includes(searchTerm.toLowerCase())
-              ).map((field) => (
-                <FieldCard 
-                  key={field.id} 
-                  field={field as Field} 
-                  onDragStart={(e) => handleDragStart(e, field)}
-                  onAdd={() => handleAddToContentType(field)}
-                  selectedContentTypeId={selectedContentTypeId}
-                />
-              ))}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="other">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-              {otherFields.filter((field) => 
-                field.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                field.description.toLowerCase().includes(searchTerm.toLowerCase())
-              ).map((field) => (
-                <FieldCard 
-                  key={field.id} 
-                  field={field as Field} 
-                  onDragStart={(e) => handleDragStart(e, field)}
-                  onAdd={() => handleAddToContentType(field)}
-                  selectedContentTypeId={selectedContentTypeId}
-                />
-              ))}
-            </div>
-          </TabsContent>
-        </Tabs>
       </div>
     </CMSLayout>
-  );
-};
-
-interface FieldCardProps {
-  field: Field;
-  onDragStart: (e: React.DragEvent) => void;
-  onAdd: () => void;
-  selectedContentTypeId: string | null;
-}
-
-const FieldCard: React.FC<FieldCardProps> = ({ 
-  field, 
-  onDragStart, 
-  onAdd,
-  selectedContentTypeId
-}) => {
-  return (
-    <Card 
-      className="overflow-hidden border border-cms-gray-200 hover:border-cms-blue transition-colors duration-200 cursor-grab"
-      draggable
-      onDragStart={onDragStart}
-    >
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-base font-medium">{field.label}</CardTitle>
-          <GripVertical size={16} className="text-cms-gray-400" />
-        </div>
-        <CardDescription className="text-xs">{field.description}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="border border-cms-gray-100 rounded-md p-3 bg-cms-gray-50">
-          <FieldRenderer
-            field={field}
-            isPreview={true}
-          />
-        </div>
-      </CardContent>
-      <CardFooter>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="w-full"
-          onClick={onAdd}
-          disabled={!selectedContentTypeId}
-        >
-          <Plus size={16} className="mr-2" />
-          Add to Content Type
-        </Button>
-      </CardFooter>
-    </Card>
   );
 };
 

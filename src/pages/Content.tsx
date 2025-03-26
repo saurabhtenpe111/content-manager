@@ -17,7 +17,7 @@ const Content = () => {
       try {
         const { data, error } = await supabase
           .from('content_types')
-          .select('*')
+          .select('*, fields(*)')
           .order('created_at', { ascending: false });
         
         if (error) {
@@ -111,6 +111,11 @@ const Content = () => {
                     View Items
                   </Button>
                 </div>
+                {contentType.api_id && (
+                  <div className="mt-2 pt-2 border-t text-xs text-muted-foreground">
+                    <span className="font-semibold">API ID:</span> {contentType.api_id}
+                  </div>
+                )}
               </div>
             ))}
           </div>

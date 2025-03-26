@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { 
   Field,
@@ -102,14 +101,12 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({
     e.dataTransfer.setData('field-id', field.id);
     e.dataTransfer.setData('field-index', String(index));
     
-    // Create a custom drag image (optional)
     const dragPreview = document.createElement('div');
     dragPreview.classList.add('bg-white', 'p-2', 'border', 'border-cms-blue', 'rounded', 'text-xs', 'shadow-md');
     dragPreview.textContent = field.label;
     document.body.appendChild(dragPreview);
     e.dataTransfer.setDragImage(dragPreview, 0, 0);
     
-    // Clean up after drag operation
     setTimeout(() => {
       document.body.removeChild(dragPreview);
     }, 0);
@@ -141,7 +138,7 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({
     
     const updatedSubfields = [
       ...(field.subfields || []),
-      { ...newSubfield, id: `temp-${Date.now()}` } // Temporary ID for UI
+      { ...newSubfield, id: `temp-${Date.now()}` }
     ];
     
     updateField(contentTypeId, field.id, {
@@ -169,20 +166,16 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({
   const handleEditSubfield = (subfield: Field, subfieldIndex: number) => {
     if (!contentTypeId || !field.id || !field.subfields) return;
     
-    // For now, set this subfield as active so it can be edited in the side panel
-    // We'll need to track which component and subfield is being edited
-    setActiveField({
+    const enrichedSubfield = {
       ...subfield,
       _parentFieldId: field.id,
       _subfieldIndex: subfieldIndex
-    });
+    };
+    
+    setActiveField(enrichedSubfield);
     
     if (onEdit) {
-      onEdit({
-        ...subfield,
-        _parentFieldId: field.id,
-        _subfieldIndex: subfieldIndex
-      });
+      onEdit(enrichedSubfield);
     }
   };
   

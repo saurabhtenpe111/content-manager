@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '@/integrations/supabase/client';
@@ -46,6 +47,9 @@ export interface Field {
   };
   options?: { label: string; value: string }[];
   subfields?: Field[];
+  isHidden?: boolean;
+  _parentFieldId?: string;
+  _subfieldIndex?: number;
 }
 
 export interface ContentType {
@@ -55,6 +59,9 @@ export interface ContentType {
   fields: Field[];
   createdAt: string;
   updatedAt: string;
+  apiId?: string;
+  apiIdPlural?: string;
+  isCollection?: boolean;
 }
 
 interface CmsState {
@@ -125,6 +132,9 @@ export const useCmsStore = create<CmsState>()(
                 description: ct.description,
                 createdAt: ct.created_at,
                 updatedAt: ct.updated_at,
+                apiId: ct.api_id,
+                apiIdPlural: ct.api_id_plural,
+                isCollection: ct.is_collection,
                 fields: fields as Field[]
               };
             });
@@ -153,7 +163,10 @@ export const useCmsStore = create<CmsState>()(
             .insert({
               name: contentType.name,
               description: contentType.description,
-              user_id: userId
+              user_id: userId,
+              api_id: contentType.apiId,
+              api_id_plural: contentType.apiIdPlural,
+              is_collection: contentType.isCollection
             })
             .select()
             .single();
@@ -184,13 +197,19 @@ export const useCmsStore = create<CmsState>()(
       
       updateContentType: async (id, contentType) => {
         try {
+          const updateData: any = {
+            updated_at: new Date().toISOString()
+          };
+          
+          if (contentType.name !== undefined) updateData.name = contentType.name;
+          if (contentType.description !== undefined) updateData.description = contentType.description;
+          if (contentType.apiId !== undefined) updateData.api_id = contentType.apiId;
+          if (contentType.apiIdPlural !== undefined) updateData.api_id_plural = contentType.apiIdPlural;
+          if (contentType.isCollection !== undefined) updateData.is_collection = contentType.isCollection;
+          
           const { error } = await supabase
             .from('content_types')
-            .update({
-              name: contentType.name,
-              description: contentType.description,
-              updated_at: new Date().toISOString()
-            })
+            .update(updateData)
             .eq('id', id);
           
           if (error) throw error;
@@ -285,19 +304,46 @@ export const useCmsStore = create<CmsState>()(
           if (field.options !== undefined) updateData.options = field.options as unknown as Json;
           if (field.isHidden !== undefined) updateData.is_hidden = field.isHidden;
           
-          const { error } = await supabase
-            .from('fields')
-            .update(updateData)
-            .eq('id', fieldId);
+          // Check if this is a parent field with _parentFieldId, which means it's actually a subfield
+          const { _parentFieldId, _subfieldIndex, ...fieldData } = field;
           
-          if (error) throw error;
+          if (_parentFieldId) {
+            // We're updating a subfield within a component
+            const contentType = get().contentTypes.find(ct => ct.id === contentTypeId);
+            if (!contentType) throw new Error('Content type not found');
+            
+            const parentField = contentType.fields.find(f => f.id === _parentFieldId);
+            if (!parentField || !parentField.subfields) throw new Error('Parent field not found');
+            
+            const updatedSubfields = [...parentField.subfields];
+            if (_subfieldIndex !== undefined && _subfieldIndex >= 0 && _subfieldIndex < updatedSubfields.length) {
+              updatedSubfields[_subfieldIndex] = {
+                ...updatedSubfields[_subfieldIndex],
+                ...fieldData
+              };
+              
+              await get().updateField(contentTypeId, _parentFieldId, {
+                ...parentField,
+                subfields: updatedSubfields
+              });
+              
+              return;
+            }
+          } else {
+            const { error } = await supabase
+              .from('fields')
+              .update(updateData)
+              .eq('id', fieldId);
+            
+            if (error) throw error;
+          }
           
           set((state) => ({
             contentTypes: state.contentTypes.map((ct) => 
               ct.id === contentTypeId
                 ? { 
                     ...ct, 
-                    fields: ct.fields.map((f) => f.id === fieldId ? { ...f, ...field } : f),
+                    fields: ct.fields.map((f) => f.id === fieldId ? { ...f, ...fieldData } : f),
                     updatedAt: new Date().toISOString(),
                   }
                 : ct
