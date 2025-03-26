@@ -12,6 +12,7 @@ import FieldsLibrary from '@/pages/FieldsLibrary';
 import Settings from '@/pages/Settings';
 import Users from '@/pages/Users';
 import ApiKeys from '@/pages/ApiKeys';
+import Content from '@/pages/Content';
 import ContentItems from '@/pages/ContentItems';
 import ContentItemEditor from '@/pages/ContentItemEditor';
 import Auth from '@/pages/Auth';
@@ -118,6 +119,16 @@ function App() {
             element={
               <ProtectedRoute>
                 <Settings />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Content Routes */}
+          <Route 
+            path="/content" 
+            element={
+              <ProtectedRoute>
+                <Content />
               </ProtectedRoute>
             } 
           />
