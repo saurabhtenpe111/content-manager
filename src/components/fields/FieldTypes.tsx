@@ -14,7 +14,8 @@ import {
   Upload, 
   ToggleLeft, 
   Sliders, 
-  Palette 
+  Palette,
+  Component 
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -28,7 +29,7 @@ interface FieldTypeItemProps {
 const FieldTypeItem: React.FC<FieldTypeItemProps> = ({ type, label, icon, onSelect }) => {
   return (
     <div 
-      className="cms-field-box flex items-center space-x-3"
+      className="cms-field-box flex items-center space-x-3 p-2 rounded-md cursor-pointer hover:bg-gray-50"
       onClick={() => onSelect(type)}
       draggable
       onDragStart={(e) => {
@@ -63,12 +64,13 @@ export const FieldTypes: React.FC<FieldTypesProps> = ({ onSelect, className }) =
     { type: 'toggle', label: 'Toggle', icon: <ToggleLeft size={16} /> },
     { type: 'slider', label: 'Slider', icon: <Sliders size={16} /> },
     { type: 'color', label: 'Color Picker', icon: <Palette size={16} /> },
+    { type: 'component', label: 'Component', icon: <Component size={16} /> },
   ];
   
   return (
     <div className={cn("space-y-2", className)}>
-      <h3 className="cms-section-title">Available Fields</h3>
-      <div className="max-h-[calc(100vh-300px)] overflow-y-auto pr-2">
+      <h3 className="cms-section-title text-sm font-semibold mb-3">Available Fields</h3>
+      <div className="max-h-[calc(100vh-300px)] overflow-y-auto pr-2 space-y-1">
         {fieldTypes.map((fieldType) => (
           <FieldTypeItem
             key={fieldType.type}

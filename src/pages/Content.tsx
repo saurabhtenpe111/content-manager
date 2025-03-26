@@ -5,24 +5,31 @@ import { Button } from '@/components/ui/button';
 import { CMSLayout } from '@/components/layout/CMSLayout';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Database, PlusCircle } from 'lucide-react';
+import { Loader2, Database, PlusCircle, FileText } from 'lucide-react';
+import { toast } from 'sonner';
 
 const Content = () => {
   const navigate = useNavigate();
   
-  const { data: contentTypes, isLoading } = useQuery({
+  const { data: contentTypes, isLoading, error } = useQuery({
     queryKey: ['contentTypes'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('content_types')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        throw error;
+      try {
+        const { data, error } = await supabase
+          .from('content_types')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (error) {
+          throw error;
+        }
+        
+        return data || [];
+      } catch (error) {
+        console.error('Error fetching content types:', error);
+        toast.error('Failed to load content types');
+        return [];
       }
-      
-      return data || [];
     }
   });
   
@@ -32,6 +39,25 @@ const Content = () => {
         <div className="flex justify-center items-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <span className="ml-2">Loading content types...</span>
+        </div>
+      </CMSLayout>
+    );
+  }
+  
+  if (error) {
+    return (
+      <CMSLayout>
+        <div className="border border-red-200 bg-red-50 p-6 rounded-lg text-center">
+          <h2 className="text-xl font-semibold text-red-700 mb-2">Error Loading Content Types</h2>
+          <p className="text-red-600 mb-4">
+            There was a problem retrieving your content types.
+          </p>
+          <Button 
+            variant="outline" 
+            onClick={() => window.location.reload()}
+          >
+            Try Again
+          </Button>
         </div>
       </CMSLayout>
     );
@@ -67,7 +93,12 @@ const Content = () => {
                 className="border rounded-lg p-6 hover:border-primary cursor-pointer transition-colors"
                 onClick={() => navigate(`/content/${contentType.id}`)}
               >
-                <h3 className="text-lg font-semibold mb-2">{contentType.name}</h3>
+                <div className="flex items-start justify-between mb-2">
+                  <h3 className="text-lg font-semibold">{contentType.name}</h3>
+                  <div className="bg-gray-100 text-gray-600 rounded-full px-2 py-0.5 text-xs">
+                    {contentType.fields?.length || 0} Fields
+                  </div>
+                </div>
                 <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
                   {contentType.description || 'No description provided'}
                 </p>
@@ -75,7 +106,8 @@ const Content = () => {
                   <span className="text-sm text-muted-foreground">
                     {new Date(contentType.created_at).toLocaleDateString()}
                   </span>
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" className="gap-1">
+                    <FileText size={14} />
                     View Items
                   </Button>
                 </div>

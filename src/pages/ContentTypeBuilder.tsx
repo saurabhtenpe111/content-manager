@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { CMSLayout } from '@/components/layout/CMSLayout';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -186,11 +185,32 @@ const ContentTypeBuilder: React.FC = () => {
     const newField: Omit<Field, 'id'> = {
       name: `component${componentCount + 1}`,
       label: `Component ${componentCount + 1}`,
-      type: 'component' as FieldType, // Cast to FieldType to resolve the TypeScript error
+      type: 'component' as FieldType, // Cast to FieldType
       placeholder: '',
       validation: {
         required: false,
       },
+      subfields: [
+        {
+          name: 'text1',
+          label: 'Text 1',
+          type: 'text',
+          placeholder: 'Enter text...',
+          validation: { required: false },
+        },
+        {
+          name: 'date1',
+          label: 'Date 1',
+          type: 'date',
+          validation: { required: false },
+        },
+        {
+          name: 'file1',
+          label: 'File 1',
+          type: 'file',
+          validation: { required: false },
+        }
+      ]
     };
     
     addField(contentType.id, newField);

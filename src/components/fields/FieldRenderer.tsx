@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { 
   Field,
@@ -23,10 +22,12 @@ import {
   Pencil, 
   GripVertical, 
   Copy, 
-  Trash2 
+  Trash2,
+  Component
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
 export interface FieldRendererProps {
   field: Field;
@@ -380,6 +381,41 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({
           </div>
         );
         
+      case 'component':
+        return (
+          <Card className="border rounded-md">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-medium">{field.label}</CardTitle>
+              {field.description && <p className="text-xs text-muted-foreground">{field.description}</p>}
+            </CardHeader>
+            <CardContent className="space-y-4 pt-0">
+              <div className="space-y-2">
+                <Label>Text 1</Label>
+                <Input 
+                  placeholder="Enter text..." 
+                  disabled={isDisabled}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Date 1</Label>
+                <Input 
+                  type="date" 
+                  disabled={isDisabled}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>File 1</Label>
+                <Input 
+                  type="file" 
+                  disabled={isDisabled}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        );
+        
       default:
         return (
           <div className="p-4 border border-cms-gray-300 rounded-md bg-cms-gray-50">
@@ -423,7 +459,7 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7"
+            className="h-7 w-7 bg-white/80 hover:bg-white"
             onClick={(e) => {
               e.stopPropagation();
               onEdit(field);
@@ -435,7 +471,7 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7"
+            className="h-7 w-7 bg-white/80 hover:bg-white"
             onClick={handleDuplicate}
           >
             <Copy size={14} />
@@ -444,7 +480,7 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 text-destructive"
+            className="h-7 w-7 bg-white/80 hover:bg-white text-destructive"
             onClick={handleDelete}
           >
             <Trash2 size={14} />
