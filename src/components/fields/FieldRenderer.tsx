@@ -1,7 +1,9 @@
+
 import React from 'react';
 import { 
   Field,
-  useCmsStore 
+  useCmsStore,
+  FieldType
 } from '@/stores/cmsStore';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -23,11 +25,19 @@ import {
   GripVertical, 
   Copy, 
   Trash2,
-  Component
+  Component,
+  Plus,
+  MoreVertical
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export interface FieldRendererProps {
   field: Field;
@@ -57,7 +67,8 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({
     addField, 
     setActiveField,
     isDragging,
-    setIsDragging
+    setIsDragging,
+    updateField
   } = useCmsStore();
   
   const handleDelete = (e: React.MouseEvent) => {
@@ -111,6 +122,67 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({
   const handleValueChange = (newValue: any) => {
     if (onChange) {
       onChange(newValue);
+    }
+  };
+
+  const handleAddSubfield = () => {
+    if (!contentTypeId || !field.id) return;
+    
+    const subfieldCount = field.subfields?.length || 0;
+    const newSubfield: Omit<Field, 'id'> = {
+      name: `field${subfieldCount + 1}`,
+      label: `Field ${subfieldCount + 1}`,
+      type: 'text' as FieldType,
+      placeholder: `Enter text...`,
+      validation: {
+        required: false,
+      },
+    };
+    
+    const updatedSubfields = [
+      ...(field.subfields || []),
+      { ...newSubfield, id: `temp-${Date.now()}` } // Temporary ID for UI
+    ];
+    
+    updateField(contentTypeId, field.id, {
+      ...field,
+      subfields: updatedSubfields
+    });
+    
+    toast.success('Added new field to component');
+  };
+
+  const handleRemoveSubfield = (subfieldIndex: number) => {
+    if (!contentTypeId || !field.id || !field.subfields) return;
+    
+    const updatedSubfields = [...field.subfields];
+    updatedSubfields.splice(subfieldIndex, 1);
+    
+    updateField(contentTypeId, field.id, {
+      ...field,
+      subfields: updatedSubfields
+    });
+    
+    toast.success('Removed field from component');
+  };
+
+  const handleEditSubfield = (subfield: Field, subfieldIndex: number) => {
+    if (!contentTypeId || !field.id || !field.subfields) return;
+    
+    // For now, set this subfield as active so it can be edited in the side panel
+    // We'll need to track which component and subfield is being edited
+    setActiveField({
+      ...subfield,
+      _parentFieldId: field.id,
+      _subfieldIndex: subfieldIndex
+    });
+    
+    if (onEdit) {
+      onEdit({
+        ...subfield,
+        _parentFieldId: field.id,
+        _subfieldIndex: subfieldIndex
+      });
     }
   };
   
@@ -385,33 +457,70 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({
         return (
           <Card className="border rounded-md">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base font-medium">{field.label}</CardTitle>
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-base font-medium">{field.label}</CardTitle>
+                {!isPreview && contentTypeId && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAddSubfield();
+                    }}
+                    className="h-8"
+                  >
+                    <Plus size={14} className="mr-1" />
+                    Add Field
+                  </Button>
+                )}
+              </div>
               {field.description && <p className="text-xs text-muted-foreground">{field.description}</p>}
             </CardHeader>
             <CardContent className="space-y-4 pt-0">
-              <div className="space-y-2">
-                <Label>Text 1</Label>
-                <Input 
-                  placeholder="Enter text..." 
-                  disabled={isDisabled}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label>Date 1</Label>
-                <Input 
-                  type="date" 
-                  disabled={isDisabled}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label>File 1</Label>
-                <Input 
-                  type="file" 
-                  disabled={isDisabled}
-                />
-              </div>
+              {field.subfields && field.subfields.length > 0 ? (
+                field.subfields.map((subfield, subfieldIndex) => (
+                  <div key={subfield.id || subfieldIndex} className="relative border p-3 rounded-md">
+                    {!isPreview && contentTypeId && (
+                      <div className="absolute top-2 right-2 z-10">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-7 w-7">
+                              <MoreVertical size={14} />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditSubfield(subfield, subfieldIndex);
+                            }}>
+                              <Pencil size={14} className="mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveSubfield(subfieldIndex);
+                            }}>
+                              <Trash2 size={14} className="mr-2" />
+                              Remove
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    )}
+                    <FieldRenderer
+                      field={subfield}
+                      isPreview={isPreview}
+                      disabled={isDisabled}
+                    />
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-4 text-sm text-muted-foreground">
+                  {!isPreview 
+                    ? "No fields added yet. Click 'Add Field' to build your component." 
+                    : "This component has no fields yet."}
+                </div>
+              )}
             </CardContent>
           </Card>
         );
@@ -454,12 +563,12 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({
       
       {getFieldComponent()}
       
-      {!isPreview && contentTypeId && onEdit && (
-        <div className="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      {!isPreview && contentTypeId && onEdit && field.type !== 'component' && (
+        <div className="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 p-1 rounded-md shadow-sm">
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 bg-white/80 hover:bg-white"
+            className="h-7 w-7"
             onClick={(e) => {
               e.stopPropagation();
               onEdit(field);
@@ -471,7 +580,7 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 bg-white/80 hover:bg-white"
+            className="h-7 w-7"
             onClick={handleDuplicate}
           >
             <Copy size={14} />
@@ -480,7 +589,7 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 bg-white/80 hover:bg-white text-destructive"
+            className="h-7 w-7 text-destructive"
             onClick={handleDelete}
           >
             <Trash2 size={14} />

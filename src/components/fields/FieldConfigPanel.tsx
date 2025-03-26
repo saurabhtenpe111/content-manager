@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Field,
-  useCmsStore 
+  useCmsStore,
+  FieldType 
 } from '@/stores/cmsStore';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -50,11 +51,15 @@ export const FieldConfigPanel: React.FC<FieldConfigPanelProps> = ({
     field.options || []
   );
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const isSubfield = '_parentFieldId' in field && '_subfieldIndex' in field;
+  const parentFieldId = isSubfield ? (field as any)._parentFieldId : null;
+  const subfieldIndex = isSubfield ? (field as any)._subfieldIndex : null;
   
   const fieldLabel = field.type.charAt(0).toUpperCase() + field.type.slice(1);
   
   const handleSave = () => {
-    updateField(contentTypeId, field.id, {
+    const updatedField = {
       name,
       label,
       description,
@@ -65,15 +70,61 @@ export const FieldConfigPanel: React.FC<FieldConfigPanelProps> = ({
         required,
       },
       options: field.type === 'dropdown' || field.type === 'radio' ? options : undefined,
-    });
+    };
+
+    if (isSubfield && parentFieldId !== null && subfieldIndex !== null) {
+      // Handle updating a subfield
+      const parentField = useCmsStore.getState().contentTypes
+        .find(ct => ct.id === contentTypeId)?.fields
+        .find(f => f.id === parentFieldId);
+      
+      if (parentField && parentField.subfields) {
+        const updatedSubfields = [...parentField.subfields];
+        updatedSubfields[subfieldIndex] = {
+          ...updatedSubfields[subfieldIndex],
+          ...updatedField
+        };
+        
+        updateField(contentTypeId, parentFieldId, {
+          ...parentField,
+          subfields: updatedSubfields
+        });
+        
+        toast.success('Subfield updated successfully!');
+      }
+    } else {
+      // Regular field update
+      updateField(contentTypeId, field.id, updatedField);
+      toast.success('Field updated successfully!');
+    }
     
-    toast.success('Field updated successfully!');
     onClose();
   };
   
   const handleDeleteField = () => {
-    deleteField(contentTypeId, field.id);
-    toast.success('Field deleted successfully!');
+    if (isSubfield && parentFieldId !== null && subfieldIndex !== null) {
+      // Handle deleting a subfield
+      const parentField = useCmsStore.getState().contentTypes
+        .find(ct => ct.id === contentTypeId)?.fields
+        .find(f => f.id === parentFieldId);
+      
+      if (parentField && parentField.subfields) {
+        const updatedSubfields = [...parentField.subfields];
+        updatedSubfields.splice(subfieldIndex, 1);
+        
+        updateField(contentTypeId, parentFieldId, {
+          ...parentField,
+          subfields: updatedSubfields
+        });
+        
+        toast.success('Subfield deleted successfully!');
+      }
+    } else {
+      // Regular field deletion
+      deleteField(contentTypeId, field.id);
+      toast.success('Field deleted successfully!');
+    }
+    
     onClose();
   };
   
@@ -128,7 +179,7 @@ export const FieldConfigPanel: React.FC<FieldConfigPanelProps> = ({
         <div className="border-b border-cms-gray-200 p-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-cms-gray-800">
-              Configure {fieldLabel} Field
+              Configure {isSubfield ? "Subfield" : fieldLabel + " Field"}
             </h2>
             <Button variant="ghost" size="icon" onClick={onClose}>
               <X size={18} />
@@ -179,92 +230,94 @@ export const FieldConfigPanel: React.FC<FieldConfigPanelProps> = ({
             </div>
           </div>
           
-          <div className="space-y-4">
-            <h3 className="text-base font-medium text-cms-gray-700">Field Settings</h3>
-            
-            <div className="space-y-2">
-              <Label htmlFor="field-placeholder">Placeholder (Optional)</Label>
-              <Input 
-                id="field-placeholder"
-                value={placeholder}
-                onChange={(e) => setPlaceholder(e.target.value)}
-                placeholder="e.g. Enter your text..."
-              />
-            </div>
-            
-            {(field.type === 'text' || field.type === 'textarea' || field.type === 'number') && (
+          {field.type !== 'component' && (
+            <div className="space-y-4">
+              <h3 className="text-base font-medium text-cms-gray-700">Field Settings</h3>
+              
               <div className="space-y-2">
-                <Label htmlFor="field-default-value">Default Value (Optional)</Label>
+                <Label htmlFor="field-placeholder">Placeholder (Optional)</Label>
                 <Input 
-                  id="field-default-value"
-                  value={defaultValue}
-                  onChange={(e) => setDefaultValue(e.target.value)}
-                  placeholder="Default value when form loads"
-                  type={field.type === 'number' ? 'number' : 'text'}
+                  id="field-placeholder"
+                  value={placeholder}
+                  onChange={(e) => setPlaceholder(e.target.value)}
+                  placeholder="e.g. Enter your text..."
                 />
               </div>
-            )}
-            
-            {(field.type === 'dropdown' || field.type === 'radio') && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between mb-2">
-                  <Label>Options</Label>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={addOption}
-                    className="text-xs"
-                  >
-                    <Plus size={14} className="mr-1" />
-                    Add Option
-                  </Button>
+              
+              {(field.type === 'text' || field.type === 'textarea' || field.type === 'number') && (
+                <div className="space-y-2">
+                  <Label htmlFor="field-default-value">Default Value (Optional)</Label>
+                  <Input 
+                    id="field-default-value"
+                    value={defaultValue}
+                    onChange={(e) => setDefaultValue(e.target.value)}
+                    placeholder="Default value when form loads"
+                    type={field.type === 'number' ? 'number' : 'text'}
+                  />
                 </div>
-                
-                {options.map((option, index) => (
-                  <div 
-                    key={index} 
-                    className="flex items-center space-x-2 p-2 border border-cms-gray-200 rounded-md"
-                    draggable
-                    onDragStart={(e) => handleOptionDragStart(e, index)}
-                    onDragOver={handleOptionDragOver}
-                    onDrop={(e) => handleOptionDrop(e, index)}
-                  >
-                    <div className="cms-drag-handle text-cms-gray-400 cursor-move">
-                      <Move size={16} />
-                    </div>
-                    <div className="flex-1 grid grid-cols-2 gap-2">
-                      <Input 
-                        placeholder="Option Label"
-                        value={option.label}
-                        onChange={(e) => updateOption(index, 'label', e.target.value)}
-                        className="text-sm"
-                      />
-                      <Input 
-                        placeholder="Option Value"
-                        value={option.value}
-                        onChange={(e) => updateOption(index, 'value', e.target.value)}
-                        className="text-sm"
-                      />
-                    </div>
+              )}
+              
+              {(field.type === 'dropdown' || field.type === 'radio') && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <Label>Options</Label>
                     <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => removeOption(index)}
-                      className="h-8 w-8 text-cms-gray-400 hover:text-destructive"
+                      variant="outline" 
+                      size="sm" 
+                      onClick={addOption}
+                      className="text-xs"
                     >
-                      <Trash2 size={14} />
+                      <Plus size={14} className="mr-1" />
+                      Add Option
                     </Button>
                   </div>
-                ))}
-                
-                {options.length === 0 && (
-                  <p className="text-sm text-cms-gray-500 italic">
-                    No options added yet. Click "Add Option" to create options.
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
+                  
+                  {options.map((option, index) => (
+                    <div 
+                      key={index} 
+                      className="flex items-center space-x-2 p-2 border border-cms-gray-200 rounded-md"
+                      draggable
+                      onDragStart={(e) => handleOptionDragStart(e, index)}
+                      onDragOver={handleOptionDragOver}
+                      onDrop={(e) => handleOptionDrop(e, index)}
+                    >
+                      <div className="cms-drag-handle text-cms-gray-400 cursor-move">
+                        <Move size={16} />
+                      </div>
+                      <div className="flex-1 grid grid-cols-2 gap-2">
+                        <Input 
+                          placeholder="Option Label"
+                          value={option.label}
+                          onChange={(e) => updateOption(index, 'label', e.target.value)}
+                          className="text-sm"
+                        />
+                        <Input 
+                          placeholder="Option Value"
+                          value={option.value}
+                          onChange={(e) => updateOption(index, 'value', e.target.value)}
+                          className="text-sm"
+                        />
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => removeOption(index)}
+                        className="h-8 w-8 text-cms-gray-400 hover:text-destructive"
+                      >
+                        <Trash2 size={14} />
+                      </Button>
+                    </div>
+                  ))}
+                  
+                  {options.length === 0 && (
+                    <p className="text-sm text-cms-gray-500 italic">
+                      No options added yet. Click "Add Option" to create options.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
           
           <div className="space-y-4">
             <h3 className="text-base font-medium text-cms-gray-700">Validation</h3>
@@ -291,7 +344,7 @@ export const FieldConfigPanel: React.FC<FieldConfigPanelProps> = ({
             onClick={() => setShowDeleteDialog(true)}
           >
             <Trash2 size={16} className="mr-2" />
-            Delete Field
+            Delete {isSubfield ? "Subfield" : "Field"}
           </Button>
           
           <div className="flex space-x-2">
@@ -308,9 +361,9 @@ export const FieldConfigPanel: React.FC<FieldConfigPanelProps> = ({
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Field</DialogTitle>
+            <DialogTitle>Delete {isSubfield ? "Subfield" : "Field"}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete the "{field.label}" field? This action cannot be undone.
+              Are you sure you want to delete the "{field.label}" {isSubfield ? "subfield" : "field"}? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

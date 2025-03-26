@@ -91,7 +91,7 @@ const Content = () => {
               <div 
                 key={contentType.id}
                 className="border rounded-lg p-6 hover:border-primary cursor-pointer transition-colors"
-                onClick={() => navigate(`/content/${contentType.id}`)}
+                onClick={() => navigate(`/content-types/${contentType.id}`)}
               >
                 <div className="flex items-start justify-between mb-2">
                   <h3 className="text-lg font-semibold">{contentType.name}</h3>

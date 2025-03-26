@@ -44,7 +44,8 @@ const ContentTypeBuilder: React.FC = () => {
     isDragging,
     reorderFields,
     setActiveContentType,
-    fetchContentTypes
+    fetchContentTypes,
+    updateField
   } = useCmsStore();
   
   const [name, setName] = useState('');
@@ -58,9 +59,10 @@ const ContentTypeBuilder: React.FC = () => {
   const contentType = contentTypes.find((ct) => ct.id === contentTypeId);
   const formAreaRef = useRef<HTMLDivElement>(null);
   
+  const [activeDropComponent, setActiveDropComponent] = useState<string | null>(null);
+  
   useEffect(() => {
     console.log('ContentTypeBuilder mounted, contentTypeId:', contentTypeId);
-    // Fetch content types if we don't have them yet
     if (contentTypes.length === 0) {
       setLoading(true);
       fetchContentTypes()
@@ -84,10 +86,8 @@ const ContentTypeBuilder: React.FC = () => {
     }
     
     console.log('Setting active content type in ContentTypeBuilder:', contentTypeId);
-    // Ensure the active content type is set correctly
     setActiveContentType(contentTypeId);
     
-    // Update form with content type data if available
     if (contentType) {
       console.log('Content type found, setting form data:', contentType.name);
       setName(contentType.name);
@@ -164,13 +164,16 @@ const ContentTypeBuilder: React.FC = () => {
       },
     };
     
-    // Add options for dropdown and radio fields
     if (type === 'dropdown' || type === 'radio') {
       newField.options = [
         { label: 'Option 1', value: 'option1' },
         { label: 'Option 2', value: 'option2' },
         { label: 'Option 3', value: 'option3' },
       ];
+    }
+    
+    if (type === 'component') {
+      newField.subfields = [];
     }
     
     addField(contentType.id, newField);
@@ -185,32 +188,12 @@ const ContentTypeBuilder: React.FC = () => {
     const newField: Omit<Field, 'id'> = {
       name: `component${componentCount + 1}`,
       label: `Component ${componentCount + 1}`,
-      type: 'component' as FieldType, // Cast to FieldType
+      type: 'component',
       placeholder: '',
       validation: {
         required: false,
       },
-      subfields: [
-        {
-          name: 'text1',
-          label: 'Text 1',
-          type: 'text',
-          placeholder: 'Enter text...',
-          validation: { required: false },
-        },
-        {
-          name: 'date1',
-          label: 'Date 1',
-          type: 'date',
-          validation: { required: false },
-        },
-        {
-          name: 'file1',
-          label: 'File 1',
-          type: 'file',
-          validation: { required: false },
-        }
-      ]
+      subfields: []
     };
     
     addField(contentType.id, newField);
@@ -244,7 +227,12 @@ const ContentTypeBuilder: React.FC = () => {
     const fieldIndex = e.dataTransfer.getData('field-index');
     const fieldDataStr = e.dataTransfer.getData('field-data');
     
-    // If dropping a field from the library with complete data
+    if (activeDropComponent) {
+      handleDropIntoComponent(activeDropComponent, fieldType, fieldDataStr);
+      setActiveDropComponent(null);
+      return;
+    }
+    
     if (fieldDataStr) {
       try {
         const fieldData = JSON.parse(fieldDataStr);
@@ -261,6 +249,10 @@ const ContentTypeBuilder: React.FC = () => {
           options: fieldData.options,
         };
         
+        if (fieldData.type === 'component') {
+          newField.subfields = [];
+        }
+        
         addField(contentType.id, newField);
         toast.success(`Added new ${fieldData.label} field`);
         return;
@@ -269,18 +261,15 @@ const ContentTypeBuilder: React.FC = () => {
       }
     }
     
-    // If dropping a new field type
     if (fieldType && !fieldId) {
       handleAddField(fieldType);
       return;
     }
     
-    // If reordering fields
     if (fieldId && fieldIndex) {
       const sourceIndex = parseInt(fieldIndex, 10);
       let targetIndex = -1;
       
-      // Find the closest field element to the drop position
       const fieldElements = formAreaRef.current.querySelectorAll('.field-item');
       const mouseY = e.clientY;
       
@@ -298,17 +287,14 @@ const ContentTypeBuilder: React.FC = () => {
         targetIndex = fieldElements.length;
       }
       
-      // Adjust target index if moving down
       if (sourceIndex < targetIndex) {
         targetIndex -= 1;
       }
       
-      // Don't reorder if dropping in the same position
       if (sourceIndex === targetIndex) {
         return;
       }
       
-      // Create a new order of field IDs
       const newOrder = [...contentType.fields.map((f) => f.id)];
       const [movedItem] = newOrder.splice(sourceIndex, 1);
       newOrder.splice(targetIndex, 0, movedItem);
@@ -316,6 +302,89 @@ const ContentTypeBuilder: React.FC = () => {
       reorderFields(contentType.id, newOrder);
       toast.success("Field order updated");
     }
+  };
+  
+  const handleDropIntoComponent = (componentId: string, fieldType?: FieldType, fieldDataStr?: string) => {
+    const componentField = contentType.fields.find(f => f.id === componentId);
+    if (!componentField || componentField.type !== 'component') return;
+    
+    let newSubfield: Field;
+    
+    if (fieldDataStr) {
+      try {
+        const fieldData = JSON.parse(fieldDataStr);
+        const subfieldCount = componentField.subfields?.length || 0;
+        
+        newSubfield = {
+          id: `${componentId}-subfield-${Date.now()}`,
+          name: `${fieldData.type}${subfieldCount + 1}`,
+          label: `${fieldData.label} ${subfieldCount + 1}`,
+          type: fieldData.type,
+          description: fieldData.description,
+          placeholder: fieldData.placeholder,
+          defaultValue: fieldData.defaultValue,
+          validation: fieldData.validation || { required: false },
+          options: fieldData.options,
+        };
+      } catch (err) {
+        console.error('Failed to parse field data:', err);
+        return;
+      }
+    } else if (fieldType) {
+      const fieldLabel = fieldType.charAt(0).toUpperCase() + fieldType.slice(1);
+      const subfieldCount = componentField.subfields?.filter((f) => f.type === fieldType).length || 0;
+      
+      newSubfield = {
+        id: `${componentId}-subfield-${Date.now()}`,
+        name: `${fieldType}${subfieldCount + 1}`,
+        label: `${fieldLabel} ${subfieldCount + 1}`,
+        type: fieldType,
+        placeholder: `Enter ${fieldType} value...`,
+        validation: {
+          required: false,
+        },
+      };
+      
+      if (fieldType === 'dropdown' || fieldType === 'radio') {
+        newSubfield.options = [
+          { label: 'Option 1', value: 'option1' },
+          { label: 'Option 2', value: 'option2' },
+          { label: 'Option 3', value: 'option3' },
+        ];
+      }
+    } else {
+      return;
+    }
+    
+    const updatedSubfields = [
+      ...(componentField.subfields || []),
+      newSubfield
+    ];
+    
+    updateField(contentType.id, componentId, {
+      ...componentField,
+      subfields: updatedSubfields
+    });
+    
+    toast.success(`Added new ${newSubfield.label} to component`);
+  };
+  
+  const handleComponentDragOver = (e: React.DragEvent, componentId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setActiveDropComponent(componentId);
+    
+    const el = e.currentTarget as HTMLElement;
+    el.classList.add('bg-blue-50', 'border-blue-300');
+  };
+  
+  const handleComponentDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setActiveDropComponent(null);
+    
+    const el = e.currentTarget as HTMLElement;
+    el.classList.remove('bg-blue-50', 'border-blue-300');
   };
   
   const handleEditField = (field: Field) => {
@@ -451,12 +520,38 @@ const ContentTypeBuilder: React.FC = () => {
                         key={field.id}
                         className="field-item"
                       >
-                        <FieldRenderer
-                          field={field}
-                          contentTypeId={contentType.id}
-                          index={index}
-                          onEdit={handleEditField}
-                        />
+                        {field.type === 'component' ? (
+                          <div
+                            onDragOver={(e) => handleComponentDragOver(e, field.id)}
+                            onDragLeave={handleComponentDragLeave}
+                            onDrop={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              const el = e.currentTarget as HTMLElement;
+                              el.classList.remove('bg-blue-50', 'border-blue-300');
+                              
+                              const fieldType = e.dataTransfer.getData('field-type') as FieldType;
+                              const fieldDataStr = e.dataTransfer.getData('field-data');
+                              
+                              handleDropIntoComponent(field.id, fieldType, fieldDataStr);
+                              setActiveDropComponent(null);
+                            }}
+                          >
+                            <FieldRenderer
+                              field={field}
+                              contentTypeId={contentType.id}
+                              index={index}
+                              onEdit={handleEditField}
+                            />
+                          </div>
+                        ) : (
+                          <FieldRenderer
+                            field={field}
+                            contentTypeId={contentType.id}
+                            index={index}
+                            onEdit={handleEditField}
+                          />
+                        )}
                       </div>
                     ))}
                   </div>
@@ -559,7 +654,7 @@ const ContentTypeBuilder: React.FC = () => {
               className="p-4 border rounded bg-gray-50 hover:bg-gray-100 cursor-pointer flex flex-col items-center text-center"
               onClick={() => {
                 setIsAddComponentDialogOpen(false);
-                handleAddField('text' as FieldType);
+                handleAddField('text');
               }}
             >
               <Component size={24} className="text-blue-600 mb-2" />

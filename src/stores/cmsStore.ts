@@ -4,21 +4,20 @@ import { supabase } from '@/integrations/supabase/client';
 import { Json } from '@/integrations/supabase/types';
 
 export type FieldType = 
-  | 'text'
-  | 'textarea'
-  | 'number'
-  | 'email'
-  | 'password'
-  | 'date'
-  | 'dropdown'
-  | 'checkbox'
-  | 'checkboxes'
-  | 'radio'
-  | 'file'
-  | 'toggle'
-  | 'slider'
-  | 'color'
-  | 'url';
+  | 'text' 
+  | 'textarea' 
+  | 'number' 
+  | 'email' 
+  | 'password' 
+  | 'date' 
+  | 'dropdown' 
+  | 'checkbox' 
+  | 'radio' 
+  | 'file' 
+  | 'toggle' 
+  | 'slider' 
+  | 'color' 
+  | 'component';
 
 export interface FieldValidation {
   required?: boolean;
@@ -41,9 +40,12 @@ export interface Field {
   description?: string;
   placeholder?: string;
   defaultValue?: any;
-  validation?: FieldValidation;
-  options?: FieldOption[];
-  isHidden?: boolean;
+  validation?: {
+    required: boolean;
+    [key: string]: any;
+  };
+  options?: { label: string; value: string }[];
+  subfields?: Field[];
 }
 
 export interface ContentType {
@@ -113,6 +115,7 @@ export const useCmsStore = create<CmsState>()(
                 defaultValue: field.default_value,
                 validation: field.validation ? (field.validation as unknown as FieldValidation) : undefined,
                 options: field.options ? (field.options as unknown as FieldOption[]) : undefined,
+                subfields: field.subfields ? (field.subfields as unknown as Field[]) : undefined,
                 isHidden: field.is_hidden
               }));
               
