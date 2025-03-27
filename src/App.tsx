@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   BrowserRouter as Router,
@@ -6,7 +7,7 @@ import {
 } from 'react-router-dom';
 import { Toaster } from 'sonner';
 
-import Index from './pages';
+import IndexPage from './pages/index';
 import Auth from './pages/Auth';
 import Dashboard from './pages/Dashboard';
 import Content from './pages/Content';
@@ -29,7 +30,7 @@ const App = () => {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Index />} />
+        <Route path="/" element={<IndexPage />} />
         <Route path="/auth" element={<Auth />} />
         <Route
           path="/dashboard"

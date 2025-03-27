@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { 
@@ -18,7 +18,7 @@ const Index = () => {
   const { user } = useAuth();
   const { fetchFieldTypes } = useFieldTypesStore();
   
-  useEffect(() => {
+  React.useEffect(() => {
     // Load field types when the app starts
     fetchFieldTypes();
   }, [fetchFieldTypes]);
