@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "../ui/input";
+import { DateRange } from "react-day-picker";
 
 export interface CalendarFieldProps {
   label?: string;
@@ -26,7 +27,7 @@ export interface CalendarFieldProps {
   value?: Date | Date[] | undefined;
   onChange?: (date: Date | Date[] | null) => void;
   dateFormat?: string;
-  locale?: Locale;
+  locale?: any; // Changed from Locale to any
   showIcon?: boolean;
   minDate?: Date;
   maxDate?: Date;
@@ -79,14 +80,26 @@ export const CalendarField = React.forwardRef<HTMLDivElement, CalendarFieldProps
   required,
   error,
 }, ref) => {
-  const [date, setDate] = useState<Date | Date[] | undefined>(value);
+  const [date, setDate] = useState<Date | Date[] | DateRange | undefined>(value);
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [open, setOpen] = useState(inline);
   
-  const handleSelect = (newDate: Date | Date[] | undefined) => {
+  const handleSelect = (newDate: Date | Date[] | DateRange | undefined) => {
     setDate(newDate);
     if (onChange) {
-      onChange(newDate || null);
+      if (newDate && 'from' in newDate && 'to' in newDate) {
+        // Handle DateRange object for react-day-picker
+        if (newDate.from && newDate.to) {
+          onChange([newDate.from, newDate.to]);
+        } else if (newDate.from) {
+          onChange(newDate.from);
+        } else {
+          onChange(null);
+        }
+      } else {
+        // Handle Date or Date[] directly
+        onChange(newDate as Date | Date[] | null);
+      }
     }
   };
 
@@ -114,7 +127,7 @@ export const CalendarField = React.forwardRef<HTMLDivElement, CalendarFieldProps
     }
   };
 
-  const formatDate = (date: Date | Date[] | undefined): string => {
+  const formatDate = (date: Date | Date[] | DateRange | undefined): string => {
     if (!date) return "";
     
     if (Array.isArray(date)) {
@@ -123,8 +136,17 @@ export const CalendarField = React.forwardRef<HTMLDivElement, CalendarFieldProps
       }
       return date.map(d => format(d, dateFormat)).join(', ');
     }
+    
+    if (date && typeof date === 'object' && 'from' in date) {
+      if (date.from && date.to) {
+        return `${format(date.from, dateFormat)} to ${format(date.to, dateFormat)}`;
+      } else if (date.from) {
+        return format(date.from, dateFormat);
+      }
+      return "";
+    }
 
-    return format(date, dateFormat);
+    return format(date as Date, dateFormat);
   };
 
   const calendarModeProps = monthsOnly 
@@ -227,7 +249,7 @@ export const CalendarField = React.forwardRef<HTMLDivElement, CalendarFieldProps
                 const date = props.date;
                 return (
                   <div {...props}>
-                    {customTemplate ? customTemplate(date) : props.day}
+                    {customTemplate(date)}
                   </div>
                 );
               }

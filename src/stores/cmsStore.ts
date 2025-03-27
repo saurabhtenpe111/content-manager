@@ -1,9 +1,41 @@
-
 import { create } from 'zustand';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { DateRange } from 'react-day-picker';
 
-export type FieldType = 'text' | 'textarea' | 'number' | 'email' | 'password' | 'checkbox' | 'radio' | 'dropdown' | 'date' | 'time' | 'datetime' | 'file' | 'image' | 'component' | 'group' | 'rich-text' | 'url' | 'color' | 'rating' | 'switch' | 'slider';
+export type FieldType = 
+  | 'text' 
+  | 'textarea' 
+  | 'number' 
+  | 'email' 
+  | 'password' 
+  | 'checkbox' 
+  | 'radio' 
+  | 'dropdown' 
+  | 'date' 
+  | 'time' 
+  | 'datetime' 
+  | 'file' 
+  | 'image' 
+  | 'component' 
+  | 'group' 
+  | 'rich-text' 
+  | 'url' 
+  | 'color' 
+  | 'rating' 
+  | 'switch' 
+  | 'slider'
+  | 'toggle'
+  | 'calendar'
+  | 'inputgroup'
+  | 'inputmask'
+  | 'inputswitch'
+  | 'tristatecheckbox'
+  | 'inputotp'
+  | 'treeselect'
+  | 'mentionbox'
+  | 'selectbutton'
+  | 'multistatecheckbox';
 
 export interface UiOptions {
   displayMode?: string;
@@ -28,7 +60,26 @@ export interface UiOptions {
   autocomplete?: string;
   className?: string;
   style?: Record<string, string>;
-  // Add any other UI options as needed
+  floatingLabel?: boolean;
+  filled?: boolean;
+  showIcon?: boolean;
+  inline?: boolean;
+  multipleMonths?: number;
+  showButtons?: boolean;
+  showTime?: boolean;
+  range?: boolean;
+  dateFormat?: string;
+  monthsOnly?: boolean;
+  yearsOnly?: boolean;
+  autoResize?: boolean;
+  checkboxSelection?: boolean;
+  filterable?: boolean;
+  showClear?: boolean;
+  count?: number;
+  allowCancel?: boolean;
+  triggers?: string[];
+  optional?: boolean;
+  slotChar?: string;
 }
 
 export interface Field {
@@ -46,9 +97,12 @@ export interface Field {
     pattern?: string;
     message?: string;
   };
-  options?: { label: string; value: string }[];
+  options?: { label: string; value: string; disabled?: boolean }[];
   subfields?: Field[];
   uiOptions?: UiOptions;
+  isHidden?: boolean;
+  _parentFieldId?: string;
+  _subfieldIndex?: number;
 }
 
 export interface ContentType {
@@ -111,7 +165,7 @@ export const useCmsStore = create<CmsStore>((set, get) => ({
       console.log('Fetched content types:', contentTypesData);
       
       // Fetch fields for each content type
-      const contentTypesWithFields: ContentType[] = await Promise.all(
+      const contentTypesWithFields = await Promise.all(
         contentTypesData.map(async (contentType) => {
           const { data: fieldsData, error: fieldsError } = await supabase
             .from('fields')
@@ -130,9 +184,10 @@ export const useCmsStore = create<CmsStore>((set, get) => ({
             description: field.description || undefined,
             placeholder: field.placeholder || undefined,
             defaultValue: field.default_value || undefined,
-            validation: field.validation || undefined,
-            options: field.options || undefined,
-            uiOptions: field.ui_options || undefined,
+            validation: typeof field.validation === 'object' ? field.validation : undefined,
+            options: Array.isArray(field.options) ? field.options : undefined,
+            uiOptions: field.ui_options ? field.ui_options : undefined,
+            isHidden: field.is_hidden || false,
           }));
           
           return {
@@ -257,6 +312,7 @@ export const useCmsStore = create<CmsStore>((set, get) => ({
           options: field.options || null,
           ui_options: field.uiOptions || null,
           position,
+          is_hidden: field.isHidden || false,
         })
         .select()
         .single();
@@ -272,9 +328,10 @@ export const useCmsStore = create<CmsStore>((set, get) => ({
           description: data.description || undefined,
           placeholder: data.placeholder || undefined,
           defaultValue: data.default_value || undefined,
-          validation: data.validation || undefined,
-          options: data.options || undefined,
+          validation: typeof data.validation === 'object' ? data.validation : undefined,
+          options: Array.isArray(data.options) ? data.options : undefined,
           uiOptions: data.ui_options || undefined,
+          isHidden: data.is_hidden || false,
           subfields: field.subfields || [],
         };
         
@@ -298,7 +355,7 @@ export const useCmsStore = create<CmsStore>((set, get) => ({
 
   updateField: async (contentTypeId, fieldId, field) => {
     try {
-      const fieldToUpdate = {
+      const fieldToUpdate: any = {
         name: field.name,
         label: field.label,
         type: field.type,
@@ -308,6 +365,7 @@ export const useCmsStore = create<CmsStore>((set, get) => ({
         validation: field.validation,
         options: field.options,
         ui_options: field.uiOptions,
+        is_hidden: field.isHidden,
       };
       
       // Remove undefined values to prevent overwriting with nulls
@@ -434,7 +492,6 @@ export const useCmsStore = create<CmsStore>((set, get) => ({
     set({ isDragging });
   },
 
-  // Field library functions
   fetchFieldLibrary: async () => {
     try {
       const { data, error } = await supabase
@@ -451,9 +508,9 @@ export const useCmsStore = create<CmsStore>((set, get) => ({
           label: field.name,
           type: field.type as FieldType,
           description: field.description || undefined,
-          options: field.properties?.options || undefined,
-          validation: field.properties?.validation || undefined,
-          defaultValue: field.properties?.defaultValue || undefined,
+          options: field.properties && typeof field.properties === 'object' && field.properties.options ? field.properties.options : undefined,
+          validation: field.properties && typeof field.properties === 'object' && field.properties.validation ? field.properties.validation : undefined,
+          defaultValue: field.properties && typeof field.properties === 'object' && field.properties.defaultValue ? field.properties.defaultValue : undefined,
         }));
         
         set({ fieldLibrary });
