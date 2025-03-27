@@ -1,17 +1,19 @@
 
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { CMSLayout } from '@/components/layout/CMSLayout';
 import { ContentItemList } from '@/components/content-item/ContentItemList';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2 } from 'lucide-react';
+import { Loader2, PlusCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 
 const ContentItems: React.FC = () => {
   const { contentTypeId } = useParams<{ contentTypeId: string }>();
   const [contentTypeName, setContentTypeName] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
   
   useEffect(() => {
     const fetchContentType = async () => {
@@ -72,11 +74,18 @@ const ContentItems: React.FC = () => {
   return (
     <CMSLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">{contentTypeName}</h1>
-          <p className="text-gray-600 mt-1">
-            Manage your {contentTypeName.toLowerCase()} content
-          </p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">{contentTypeName}</h1>
+            <p className="text-gray-600 mt-1">
+              Manage your {contentTypeName.toLowerCase()} content
+            </p>
+          </div>
+          
+          <Button onClick={() => navigate(`/content/${contentTypeId}/new`)}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Create New
+          </Button>
         </div>
         
         <ContentItemList 
