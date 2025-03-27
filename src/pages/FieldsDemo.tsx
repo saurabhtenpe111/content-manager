@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { CMSLayout } from '@/components/layout/CMSLayout';
 import {
@@ -25,6 +24,7 @@ import { RatingField } from '@/components/fields/RatingField';
 import { MultiStateCheckbox } from '@/components/fields/MultiStateCheckbox';
 import { Search, Calendar, Mail, User, Plus, Minus, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/utils/cn';
 
 const FieldsDemo = () => {
   // Calendar state
@@ -1012,15 +1012,13 @@ const FieldsDemo = () => {
                       { label: 'High', value: 'high' }
                     ]}
                     template={(option) => (
-                      <div className="flex items-center gap-2">
-                        <div className={cn(
-                          "w-3 h-3 rounded-full",
-                          option.value === 'low' && "bg-green-500",
-                          option.value === 'medium' && "bg-yellow-500",
-                          option.value === 'high' && "bg-red-500"
-                        )} />
-                        {option.label}
-                      </div>
+                      <div className={cn(
+                        "w-3 h-3 rounded-full",
+                        option.value === 'low' && "bg-green-500",
+                        option.value === 'medium' && "bg-yellow-500",
+                        option.value === 'high' && "bg-red-500"
+                      )} />
+                      {option.label}
                     )}
                     onChange={(value) => toast(`Priority: ${value}`)}
                   />
