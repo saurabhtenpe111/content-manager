@@ -18,7 +18,18 @@ export type FieldType =
   | 'toggle' 
   | 'slider' 
   | 'color' 
-  | 'component';
+  | 'component'
+  | 'calendar'
+  | 'inputgroup'
+  | 'inputmask'
+  | 'inputswitch'
+  | 'tristatecheckbox'
+  | 'inputotp'
+  | 'treeselect'
+  | 'mentionbox'
+  | 'selectbutton'
+  | 'rating'
+  | 'multistatecheckbox';
 
 export interface FieldValidation {
   required?: boolean;
@@ -31,6 +42,30 @@ export interface FieldValidation {
 export interface FieldOption {
   label: string;
   value: string;
+  disabled?: boolean;
+}
+
+export interface FieldUIOptions {
+  floatingLabel?: boolean;
+  filled?: boolean;
+  showIcon?: boolean;
+  inline?: boolean;
+  multipleMonths?: number;
+  showButtons?: boolean;
+  showTime?: boolean;
+  autoResize?: boolean;
+  multiple?: boolean;
+  checkboxSelection?: boolean;
+  filterable?: boolean;
+  showClear?: boolean;
+  range?: boolean;
+  count?: number;
+  allowCancel?: boolean;
+  triggers?: string[];
+  dateFormat?: string;
+  monthsOnly?: boolean;
+  optional?: boolean;
+  slotChar?: string;
 }
 
 export interface Field {
@@ -41,11 +76,9 @@ export interface Field {
   description?: string;
   placeholder?: string;
   defaultValue?: any;
-  validation?: {
-    required: boolean;
-    [key: string]: any;
-  };
-  options?: { label: string; value: string }[];
+  validation?: FieldValidation;
+  options?: FieldOption[];
+  uiOptions?: FieldUIOptions;
   subfields?: Field[];
   isHidden?: boolean;
   _parentFieldId?: string;
@@ -123,6 +156,7 @@ export const useCmsStore = create<CmsState>()(
                 validation: field.validation ? (field.validation as unknown as FieldValidation) : undefined,
                 options: field.options ? (field.options as unknown as FieldOption[]) : undefined,
                 subfields: field.subfields ? (field.subfields as unknown as Field[]) : undefined,
+                uiOptions: field.ui_options ? (field.ui_options as unknown as FieldUIOptions) : undefined,
                 isHidden: field.is_hidden
               }));
               
@@ -264,6 +298,7 @@ export const useCmsStore = create<CmsState>()(
               default_value: field.defaultValue as Json,
               validation: field.validation as unknown as Json,
               options: field.options as unknown as Json,
+              ui_options: field.uiOptions as unknown as Json,
               is_hidden: field.isHidden
             }])
             .select()
@@ -302,6 +337,7 @@ export const useCmsStore = create<CmsState>()(
           if (field.defaultValue !== undefined) updateData.default_value = field.defaultValue;
           if (field.validation !== undefined) updateData.validation = field.validation as unknown as Json;
           if (field.options !== undefined) updateData.options = field.options as unknown as Json;
+          if (field.uiOptions !== undefined) updateData.ui_options = field.uiOptions as unknown as Json;
           if (field.isHidden !== undefined) updateData.is_hidden = field.isHidden;
           
           // Check if this is a parent field with _parentFieldId, which means it's actually a subfield

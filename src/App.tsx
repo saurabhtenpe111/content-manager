@@ -1,160 +1,71 @@
-import React from 'react';
-import {
-  BrowserRouter as Router,
-  Route,
-  Routes,
-} from 'react-router-dom';
-import { Toaster } from 'sonner';
 
-import IndexPage from './pages/index';
-import Auth from './pages/Auth';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+
+// Layouts
+import RootLayout from './layouts/RootLayout';
+import AuthLayout from './layouts/AuthLayout';
+
+// Pages
+import Home from './pages/Home';
+import Login from './pages/auth/Login';
+import Register from './pages/auth/Register';
 import Dashboard from './pages/Dashboard';
-import Content from './pages/Content';
-import ContentTypes from './pages/ContentTypes';
-import ContentTypeBuilder from './pages/ContentTypeBuilder';
-import ContentItems from './pages/ContentItems';
-import ContentItemEditor from './pages/ContentItemEditor';
-import ApiKeys from './pages/ApiKeys';
-import FieldsLibrary from './pages/FieldsLibrary';
-import FormBuilder from './pages/FormBuilder';
-import FormEditor from './pages/FormEditor';
-import Users from './pages/Users';
 import Settings from './pages/Settings';
 import NotFound from './pages/NotFound';
-import { ProtectedRoute } from './components/ProtectedRoute';
-import FieldsDemo from './pages/FieldsDemo';
+import PrivacyPolicy from './pages/legal/PrivacyPolicy';
+import TermsOfService from './pages/legal/TermsOfService';
+import ContentTypes from './pages/ContentTypes';
+import ContentTypeBuilder from './pages/ContentTypeBuilder';
+import Content from './pages/Content';
+import ContentEntry from './pages/ContentEntry';
+import FieldsLibrary from './pages/FieldsLibrary';
 
-const App = () => {
+// Authentication context
+import { AuthProvider } from './contexts/AuthContext';
+import ResetPassword from './pages/auth/ResetPassword';
+import ForgotPassword from './pages/auth/ForgotPassword';
+
+function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<IndexPage />} />
-        <Route path="/auth" element={<Auth />} />
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/content"
-          element={
-            <ProtectedRoute>
-              <Content />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/content-types"
-          element={
-            <ProtectedRoute>
-              <ContentTypes />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/content-types/:id"
-          element={
-            <ProtectedRoute>
-              <ContentTypeBuilder />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/content-types/new"
-          element={
-            <ProtectedRoute>
-              <ContentTypeBuilder />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/content-items/:contentTypeId"
-          element={
-            <ProtectedRoute>
-              <ContentItems />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/content-items/:contentTypeId/new"
-          element={
-            <ProtectedRoute>
-              <ContentItemEditor />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/content-items/:contentTypeId/:itemId"
-          element={
-            <ProtectedRoute>
-              <ContentItemEditor />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/api-keys"
-          element={
-            <ProtectedRoute>
-              <ApiKeys />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/fields-library"
-          element={
-            <ProtectedRoute>
-              <FieldsLibrary />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/form-builder"
-          element={
-            <ProtectedRoute>
-              <FormBuilder />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/form-editor/:id"
-          element={
-            <ProtectedRoute>
-              <FormEditor />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/users"
-          element={
-            <ProtectedRoute>
-              <Users />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            <ProtectedRoute>
-              <Settings />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/fields-demo"
-          element={
-            <ProtectedRoute>
-              <FieldsDemo />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-      <Toaster />
-    </Router>
+    <AuthProvider>
+      <Router>
+        <Routes>
+          {/* Auth routes */}
+          <Route path="/" element={<AuthLayout />}>
+            <Route index element={<Login />} />
+            <Route path="login" element={<Login />} />
+            <Route path="register" element={<Register />} />
+            <Route path="forgot-password" element={<ForgotPassword />} />
+            <Route path="reset-password" element={<ResetPassword />} />
+          </Route>
+          
+          {/* Main routes */}
+          <Route path="/" element={<RootLayout />}>
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="settings" element={<Settings />} />
+            
+            {/* Content routes */}
+            <Route path="content-types" element={<ContentTypes />} />
+            <Route path="content-types/:contentTypeId" element={<ContentTypeBuilder />} />
+            <Route path="content/:contentTypeId" element={<Content />} />
+            <Route path="content/:contentTypeId/new" element={<ContentEntry />} />
+            <Route path="content/:contentTypeId/:contentItemId" element={<ContentEntry />} />
+            
+            {/* Field Library */}
+            <Route path="fields-library" element={<FieldsLibrary />} />
+            
+            {/* Legal routes */}
+            <Route path="privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="terms-of-service" element={<TermsOfService />} />
+          </Route>
+          
+          {/* Not found route */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
-};
+}
 
 export default App;

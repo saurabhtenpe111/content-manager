@@ -29,7 +29,16 @@ import {
   ChevronLeft,
   Search,
   Filter,
-  Star
+  Star,
+  SquareStack,
+  TextCursorInput,
+  AlignLeft,
+  LucideIcon,
+  Hash as HashIcon,
+  TriangleAlert,
+  SlidersHorizontal,
+  Lock,
+  Cpu
 } from 'lucide-react';
 import { FieldType, useCmsStore, Field } from '@/stores/cmsStore';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -46,7 +55,7 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 
-type FieldCategory = 'text' | 'choice' | 'date' | 'media' | 'relation' | 'custom';
+type FieldCategory = 'text' | 'choice' | 'date' | 'media' | 'relation' | 'input' | 'advanced' | 'custom';
 
 const FieldsLibrary = () => {
   const navigate = useNavigate();
@@ -57,104 +66,203 @@ const FieldsLibrary = () => {
   
   const activeContentType = contentTypes.find(ct => ct.id === activeContentTypeId);
   
-  const fieldDefinitions = [
+  interface FieldDefinition {
+    type: string;
+    name: string;
+    icon: React.ReactNode;
+    description: string;
+    category: FieldCategory;
+    preview?: React.ReactNode;
+  }
+  
+  const fieldDefinitions: FieldDefinition[] = [
+    // Text fields
     {
       type: 'text',
       name: 'Short text',
       icon: <Type size={20} />,
       description: 'Small text: titles, names, tags',
-      category: 'text' as FieldCategory
+      category: 'text'
     },
     {
       type: 'textarea',
       name: 'Long text',
       icon: <AlignJustify size={20} />,
       description: 'Long text: paragraphs, descriptions',
-      category: 'text' as FieldCategory
+      category: 'text'
     },
     {
       type: 'number',
       name: 'Number',
       icon: <Hash size={20} />,
       description: 'Numbers: integers, decimals',
-      category: 'text' as FieldCategory
+      category: 'text'
     },
     {
       type: 'email',
       name: 'Email',
       icon: <Mail size={20} />,
       description: 'Email addresses',
-      category: 'text' as FieldCategory
+      category: 'text'
     },
     {
       type: 'password',
       name: 'Password',
       icon: <Key size={20} />,
       description: 'Password field with masking',
-      category: 'text' as FieldCategory
+      category: 'text'
     },
+    {
+      type: 'mentionbox',
+      name: 'Mention Box',
+      icon: <TextCursorInput size={20} />,
+      description: 'Text area with @mentions support',
+      category: 'text'
+    },
+    
+    // Date fields
     {
       type: 'date',
       name: 'Date',
       icon: <Calendar size={20} />,
       description: 'Date picker',
-      category: 'date' as FieldCategory
+      category: 'date'
     },
+    {
+      type: 'calendar',
+      name: 'Calendar',
+      icon: <Calendar size={20} />,
+      description: 'Advanced calendar with date ranges',
+      category: 'date'
+    },
+    
+    // Choice fields
     {
       type: 'dropdown',
       name: 'Dropdown',
       icon: <List size={20} />,
       description: 'Dropdown selection',
-      category: 'choice' as FieldCategory
+      category: 'choice'
     },
     {
       type: 'checkbox',
       name: 'Checkbox',
       icon: <Check size={20} />,
       description: 'Boolean: true or false',
-      category: 'choice' as FieldCategory
+      category: 'choice'
     },
     {
       type: 'radio',
       name: 'Radio',
       icon: <RadioIcon size={20} />,
       description: 'Choose one from several options',
-      category: 'choice' as FieldCategory
-    },
-    {
-      type: 'file',
-      name: 'Media',
-      icon: <File size={20} />,
-      description: 'Files and images',
-      category: 'media' as FieldCategory
+      category: 'choice'
     },
     {
       type: 'toggle',
       name: 'Toggle',
       icon: <ToggleLeft size={20} />,
       description: 'On/Off switch',
-      category: 'choice' as FieldCategory
+      category: 'choice'
     },
+    {
+      type: 'selectbutton',
+      name: 'Select Button',
+      icon: <SquareStack size={20} />,
+      description: 'Button-based selection',
+      category: 'choice'
+    },
+    {
+      type: 'tristatecheckbox',
+      name: 'Tri-State Checkbox',
+      icon: <TriangleAlert size={20} />,
+      description: 'Checkbox with three states',
+      category: 'choice'
+    },
+    {
+      type: 'multistatecheckbox',
+      name: 'Multi-State Checkbox',
+      icon: <Cpu size={20} />,
+      description: 'Checkbox with multiple states',
+      category: 'choice'
+    },
+    
+    // Advanced input fields
+    {
+      type: 'inputgroup',
+      name: 'Input Group',
+      icon: <AlignLeft size={20} />,
+      description: 'Input with prefixes and suffixes',
+      category: 'input'
+    },
+    {
+      type: 'inputmask',
+      name: 'Input Mask',
+      icon: <Lock size={20} />,
+      description: 'Masked input for formatted data',
+      category: 'input'
+    },
+    {
+      type: 'inputswitch',
+      name: 'Input Switch',
+      icon: <ToggleLeft size={20} />,
+      description: 'Form-integrated toggle switch',
+      category: 'input'
+    },
+    {
+      type: 'inputotp',
+      name: 'OTP Input',
+      icon: <Hash size={20} />,
+      description: 'One-time password input',
+      category: 'input'
+    },
+    
+    // Advanced fields
     {
       type: 'slider',
       name: 'Slider',
       icon: <Sliders size={20} />,
       description: 'Range selection',
-      category: 'choice' as FieldCategory
+      category: 'advanced'
+    },
+    {
+      type: 'rating',
+      name: 'Rating',
+      icon: <Star size={20} />,
+      description: 'Star rating input',
+      category: 'advanced'
+    },
+    {
+      type: 'treeselect',
+      name: 'Tree Select',
+      icon: <List size={20} />,
+      description: 'Hierarchical selection dropdown',
+      category: 'advanced'
     },
     {
       type: 'color',
       name: 'Color',
       icon: <Palette size={20} />,
       description: 'Color picker',
-      category: 'choice' as FieldCategory
+      category: 'advanced'
     },
+    
+    // Media fields
+    {
+      type: 'file',
+      name: 'Media',
+      icon: <File size={20} />,
+      description: 'Files and images',
+      category: 'media'
+    },
+    
+    // Custom fields
     {
       type: 'component',
       name: 'Component',
       icon: <Component size={20} />,
       description: 'Group of fields',
-      category: 'custom' as FieldCategory
+      category: 'custom'
     }
   ];
   
@@ -166,7 +274,7 @@ const FieldsLibrary = () => {
     }
   };
   
-  const handleFieldDragStart = (e: React.DragEvent, fieldDef: any) => {
+  const handleFieldDragStart = (e: React.DragEvent, fieldDef: FieldDefinition) => {
     e.dataTransfer.setData('field-type', fieldDef.type);
     
     const field: Omit<Field, 'id'> = {
@@ -180,7 +288,7 @@ const FieldsLibrary = () => {
       }
     };
     
-    if (fieldDef.type === 'dropdown' || fieldDef.type === 'radio') {
+    if (['dropdown', 'radio', 'selectbutton'].includes(fieldDef.type)) {
       field.options = [
         { label: 'Option 1', value: 'option1' },
         { label: 'Option 2', value: 'option2' },
@@ -262,6 +370,12 @@ const FieldsLibrary = () => {
                     <TabsTrigger value="date" className="justify-start text-left px-4 mb-1">
                       Date Fields
                     </TabsTrigger>
+                    <TabsTrigger value="input" className="justify-start text-left px-4 mb-1">
+                      Input Fields
+                    </TabsTrigger>
+                    <TabsTrigger value="advanced" className="justify-start text-left px-4 mb-1">
+                      Advanced Fields
+                    </TabsTrigger>
                     <TabsTrigger value="media" className="justify-start text-left px-4 mb-1">
                       Media Fields
                     </TabsTrigger>
@@ -330,6 +444,15 @@ const FieldsLibrary = () => {
                   <DropdownMenuItem onClick={() => setSelectedCategory('choice')}>
                     Choice Fields
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSelectedCategory('date')}>
+                    Date Fields
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSelectedCategory('input')}>
+                    Input Fields
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSelectedCategory('advanced')}>
+                    Advanced Fields
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -366,6 +489,7 @@ const FieldsLibrary = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="p-2 border rounded bg-gray-50">
+                      {/* Text fields */}
                       {field.type === 'text' && (
                         <Input placeholder="Text field" disabled />
                       )}
@@ -381,9 +505,16 @@ const FieldsLibrary = () => {
                       {field.type === 'password' && (
                         <Input type="password" placeholder="Password" disabled />
                       )}
-                      {field.type === 'date' && (
+                      {field.type === 'mentionbox' && (
+                        <Textarea placeholder="Type @ to mention..." disabled rows={2} />
+                      )}
+                      
+                      {/* Date fields */}
+                      {(field.type === 'date' || field.type === 'calendar') && (
                         <Input type="date" disabled />
                       )}
+                      
+                      {/* Choice fields */}
                       {field.type === 'dropdown' && (
                         <div className="border rounded p-2 text-sm text-muted-foreground">
                           Dropdown selection
@@ -401,18 +532,80 @@ const FieldsLibrary = () => {
                           <Label className="text-sm">Radio option</Label>
                         </div>
                       )}
-                      {field.type === 'file' && (
-                        <Input type="file" disabled />
-                      )}
                       {field.type === 'toggle' && (
                         <div className="flex justify-between items-center">
                           <Label className="text-sm">Toggle option</Label>
                           <div className="h-5 w-10 bg-gray-300 rounded-full"></div>
                         </div>
                       )}
+                      {field.type === 'selectbutton' && (
+                        <div className="flex gap-2">
+                          <div className="bg-primary text-white text-xs py-1 px-2 rounded">Option 1</div>
+                          <div className="border text-xs py-1 px-2 rounded">Option 2</div>
+                        </div>
+                      )}
+                      {field.type === 'tristatecheckbox' && (
+                        <div className="flex items-center">
+                          <div className="w-4 h-4 border bg-gray-200 mr-2"></div>
+                          <Label className="text-sm">Tri-state option</Label>
+                        </div>
+                      )}
+                      {field.type === 'multistatecheckbox' && (
+                        <div className="flex items-center">
+                          <div className="w-5 h-5 border bg-primary text-white flex items-center justify-center rounded-sm mr-2">A</div>
+                          <Label className="text-sm">Multi-state option</Label>
+                        </div>
+                      )}
+                      
+                      {/* Input fields */}
+                      {field.type === 'inputgroup' && (
+                        <div className="flex border rounded">
+                          <div className="px-2 bg-gray-100 flex items-center border-r text-gray-500">@</div>
+                          <Input className="border-0" placeholder="username" disabled />
+                        </div>
+                      )}
+                      {field.type === 'inputmask' && (
+                        <Input placeholder="(___) ___-____" disabled />
+                      )}
+                      {field.type === 'inputswitch' && (
+                        <div className="flex justify-between items-center">
+                          <Label className="text-sm">Enable feature</Label>
+                          <div className="h-5 w-10 bg-primary rounded-full"></div>
+                        </div>
+                      )}
+                      {field.type === 'inputotp' && (
+                        <div className="flex gap-2 justify-center">
+                          <div className="w-8 h-8 border rounded flex items-center justify-center">1</div>
+                          <div className="w-8 h-8 border rounded flex items-center justify-center">2</div>
+                          <div className="w-8 h-8 border rounded flex items-center justify-center">3</div>
+                          <div className="w-8 h-8 border rounded flex items-center justify-center">4</div>
+                        </div>
+                      )}
+                      
+                      {/* Advanced fields */}
                       {field.type === 'slider' && (
                         <div className="py-4">
-                          <div className="h-1 bg-gray-300 rounded-full"></div>
+                          <div className="h-1 bg-gray-300 rounded-full relative">
+                            <div className="absolute h-4 w-4 bg-primary rounded-full -top-1.5"></div>
+                          </div>
+                        </div>
+                      )}
+                      {field.type === 'rating' && (
+                        <div className="flex">
+                          {[1, 2, 3, 4, 5].map((_, i) => (
+                            <Star 
+                              key={i} 
+                              size={16} 
+                              className={i < 3 ? "text-yellow-400 fill-yellow-400" : "text-gray-300"} 
+                            />
+                          ))}
+                        </div>
+                      )}
+                      {field.type === 'treeselect' && (
+                        <div className="border rounded p-2 text-sm text-muted-foreground">
+                          <div className="flex items-center">
+                            <span className="mr-1">▶</span> Hierarchical options
+                          </div>
                         </div>
                       )}
                       {field.type === 'color' && (
@@ -421,6 +614,13 @@ const FieldsLibrary = () => {
                           <Input value="#3b82f6" disabled />
                         </div>
                       )}
+                      
+                      {/* Media fields */}
+                      {field.type === 'file' && (
+                        <Input type="file" disabled />
+                      )}
+                      
+                      {/* Custom fields */}
                       {field.type === 'component' && (
                         <div className="p-2 border-2 border-dashed border-gray-300 rounded text-center text-sm text-muted-foreground">
                           <Component size={16} className="mx-auto mb-1" />

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { cn } from "@/utils/cn";
+import { cn } from "@/lib/utils";
 import { Label } from "../ui/label";
 import { Star } from "lucide-react";
 
