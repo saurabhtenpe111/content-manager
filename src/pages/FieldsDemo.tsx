@@ -1012,13 +1012,15 @@ const FieldsDemo = () => {
                       { label: 'High', value: 'high' }
                     ]}
                     template={(option) => (
-                      <div className={cn(
-                        "w-3 h-3 rounded-full",
-                        option.value === 'low' && "bg-green-500",
-                        option.value === 'medium' && "bg-yellow-500",
-                        option.value === 'high' && "bg-red-500"
-                      )} />
-                      {option.label}
+                      <div className="flex items-center gap-2">
+                        <div className={cn(
+                          "w-3 h-3 rounded-full",
+                          option.value === 'low' && "bg-green-500",
+                          option.value === 'medium' && "bg-yellow-500",
+                          option.value === 'high' && "bg-red-500"
+                        )} />
+                        {option.label}
+                      </div>
                     )}
                     onChange={(value) => toast(`Priority: ${value}`)}
                   />
