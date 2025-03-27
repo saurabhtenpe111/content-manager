@@ -14,6 +14,9 @@ import Content from './pages/Content';
 import ContentItemEditor from './pages/ContentItemEditor';
 import ContentItems from './pages/ContentItems';
 import FieldsLibrary from './pages/FieldsLibrary';
+import FormBuilder from './pages/FormBuilder';
+import FormEditor from './pages/FormEditor';
+import Index from './pages/index';
 
 // Import the layouts
 import RootLayout from '@/layouts/RootLayout';
@@ -38,6 +41,7 @@ function App() {
           <Routes>
             {/* Main routes */}
             <Route path="/" element={<RootLayout />}>
+              <Route index element={<Index />} />
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="settings" element={<Settings />} />
               
@@ -50,6 +54,10 @@ function App() {
               
               {/* Field Library */}
               <Route path="fields-library" element={<FieldsLibrary />} />
+              
+              {/* Form Builder */}
+              <Route path="form-builder" element={<FormBuilder />} />
+              <Route path="form-builder/:contentTypeId" element={<FormEditor />} />
             </Route>
             
             {/* Not found route */}

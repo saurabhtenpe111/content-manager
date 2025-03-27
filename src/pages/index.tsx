@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 
 // Redirect to the dashboard
-const IndexPage = () => {
+const Index = () => {
   const navigate = useNavigate();
   
   useEffect(() => {
@@ -14,4 +14,4 @@ const IndexPage = () => {
   return <div>Redirecting to Dashboard...</div>;
 };
 
-export default IndexPage;
+export default Index;
