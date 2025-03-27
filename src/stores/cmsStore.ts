@@ -135,6 +135,19 @@ interface CmsStore {
   addFieldToLibrary: (field: Omit<Field, 'id'>) => Promise<void>;
   updateFieldInLibrary: (fieldId: string, field: Partial<Field>) => Promise<void>;
   deleteFieldFromLibrary: (fieldId: string) => Promise<void>;
+  activeContentTypeId?: string;
+}
+
+function isValidationObject(obj: any): obj is { required?: boolean; min?: number; max?: number; pattern?: string; message?: string } {
+  return obj && typeof obj === 'object';
+}
+
+function isOptionsArray(obj: any): obj is { label: string; value: string; disabled?: boolean }[] {
+  return Array.isArray(obj) && obj.every(item => 
+    typeof item === 'object' && 
+    typeof item.label === 'string' && 
+    typeof item.value === 'string'
+  );
 }
 
 export const useCmsStore = create<CmsStore>((set, get) => ({
@@ -148,7 +161,6 @@ export const useCmsStore = create<CmsStore>((set, get) => ({
     try {
       console.log('Fetching content types from Supabase...');
       
-      // Fetch content types
       const { data: contentTypesData, error: contentTypesError } = await supabase
         .from('content_types')
         .select('*')
@@ -164,7 +176,6 @@ export const useCmsStore = create<CmsStore>((set, get) => ({
       
       console.log('Fetched content types:', contentTypesData);
       
-      // Fetch fields for each content type
       const contentTypesWithFields = await Promise.all(
         contentTypesData.map(async (contentType) => {
           const { data: fieldsData, error: fieldsError } = await supabase
@@ -175,20 +186,46 @@ export const useCmsStore = create<CmsStore>((set, get) => ({
           
           if (fieldsError) throw fieldsError;
           
-          // Map database fields to application fields
-          const fields: Field[] = (fieldsData || []).map((field) => ({
-            id: field.id,
-            name: field.name,
-            label: field.label,
-            type: field.type as FieldType,
-            description: field.description || undefined,
-            placeholder: field.placeholder || undefined,
-            defaultValue: field.default_value || undefined,
-            validation: typeof field.validation === 'object' ? field.validation : undefined,
-            options: Array.isArray(field.options) ? field.options : undefined,
-            uiOptions: field.ui_options ? field.ui_options : undefined,
-            isHidden: field.is_hidden || false,
-          }));
+          const fields: Field[] = (fieldsData || []).map((field) => {
+            let validation = undefined;
+            let options = undefined;
+            let uiOptions = undefined;
+            
+            try {
+              const val = field.validation;
+              validation = isValidationObject(val) ? val : undefined;
+            } catch (error) {
+              console.error('Invalid validation data:', field.validation);
+            }
+            
+            try {
+              const opts = field.options;
+              options = isOptionsArray(opts) ? opts : undefined;
+            } catch (error) {
+              console.error('Invalid options data:', field.options);
+            }
+            
+            try {
+              const ui = field.ui_options;
+              uiOptions = (ui && typeof ui === 'object') ? ui : undefined;
+            } catch (error) {
+              console.error('Invalid UI options data:', field.ui_options);
+            }
+            
+            return {
+              id: field.id,
+              name: field.name,
+              label: field.label,
+              type: field.type as FieldType,
+              description: field.description || undefined,
+              placeholder: field.placeholder || undefined,
+              defaultValue: field.default_value || undefined,
+              validation,
+              options,
+              uiOptions,
+              isHidden: field.is_hidden || false,
+            };
+          });
           
           return {
             id: contentType.id,
@@ -328,9 +365,9 @@ export const useCmsStore = create<CmsStore>((set, get) => ({
           description: data.description || undefined,
           placeholder: data.placeholder || undefined,
           defaultValue: data.default_value || undefined,
-          validation: typeof data.validation === 'object' ? data.validation : undefined,
-          options: Array.isArray(data.options) ? data.options : undefined,
-          uiOptions: data.ui_options || undefined,
+          validation: data.validation ? data.validation : undefined,
+          options: data.options ? data.options : undefined,
+          uiOptions: data.ui_options ? data.ui_options : undefined,
           isHidden: data.is_hidden || false,
           subfields: field.subfields || [],
         };
@@ -368,7 +405,6 @@ export const useCmsStore = create<CmsStore>((set, get) => ({
         is_hidden: field.isHidden,
       };
       
-      // Remove undefined values to prevent overwriting with nulls
       Object.keys(fieldToUpdate).forEach(key => {
         if (fieldToUpdate[key] === undefined) {
           delete fieldToUpdate[key];
@@ -440,7 +476,6 @@ export const useCmsStore = create<CmsStore>((set, get) => ({
       const contentType = get().contentTypes.find((ct) => ct.id === contentTypeId);
       if (!contentType) throw new Error('Content type not found');
       
-      // Create a mapping of field IDs to their new positions
       const positions = fieldIds.reduce(
         (acc, id, index) => ({
           ...acc,
@@ -449,7 +484,6 @@ export const useCmsStore = create<CmsStore>((set, get) => ({
         {}
       );
       
-      // Update field positions in the database
       const updatePromises = fieldIds.map((id, index) =>
         supabase
           .from('fields')
@@ -460,7 +494,6 @@ export const useCmsStore = create<CmsStore>((set, get) => ({
       
       await Promise.all(updatePromises);
       
-      // Update the local state with the new field order
       set((state) => ({
         contentTypes: state.contentTypes.map((ct) =>
           ct.id === contentTypeId
@@ -502,16 +535,19 @@ export const useCmsStore = create<CmsStore>((set, get) => ({
       if (error) throw error;
       
       if (data) {
-        const fieldLibrary: Field[] = data.map((field) => ({
-          id: field.id,
-          name: field.name,
-          label: field.name,
-          type: field.type as FieldType,
-          description: field.description || undefined,
-          options: field.properties && typeof field.properties === 'object' && field.properties.options ? field.properties.options : undefined,
-          validation: field.properties && typeof field.properties === 'object' && field.properties.validation ? field.properties.validation : undefined,
-          defaultValue: field.properties && typeof field.properties === 'object' && field.properties.defaultValue ? field.properties.defaultValue : undefined,
-        }));
+        const fieldLibrary: Field[] = data.map((field) => {
+          const properties = field.properties || {};
+          return {
+            id: field.id,
+            name: field.name,
+            label: field.name,
+            type: field.type as FieldType,
+            description: field.description || undefined,
+            options: properties.options ? properties.options : undefined,
+            validation: properties.validation ? properties.validation : undefined,
+            defaultValue: properties.defaultValue ? properties.defaultValue : undefined,
+          };
+        });
         
         set({ fieldLibrary });
       }
@@ -575,7 +611,6 @@ export const useCmsStore = create<CmsStore>((set, get) => ({
         },
       };
       
-      // Remove undefined values
       Object.keys(fieldToUpdate).forEach(key => {
         if (fieldToUpdate[key] === undefined) {
           delete fieldToUpdate[key];

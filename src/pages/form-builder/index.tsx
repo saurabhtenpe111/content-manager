@@ -9,7 +9,7 @@ const FormBuilderRedirect: React.FC = () => {
   useEffect(() => {
     // Simply show the form builder UI instead of redirecting (since we're already at the right URL)
     toast.info('Welcome to the form builder');
-  }, [navigate]);
+  }, []);
   
   return (
     <div className="container mx-auto py-8">

@@ -3,8 +3,9 @@ import React, { forwardRef } from "react";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
-export interface InputGroupProps
-  extends React.InputHTMLAttributes<HTMLInputElement> {
+export interface InputGroupProps {
+  className?: string;
+  type?: string;
   label?: string;
   error?: string;
   prefix?: React.ReactNode;
@@ -21,6 +22,15 @@ export interface InputGroupProps
   suffixButtons?: React.ReactNode[];
   onCheckboxChange?: (checked: boolean) => void;
   onRadioChange?: (value: string) => void;
+  id?: string;
+  value?: string;
+  onChange?: React.ChangeEventHandler<HTMLInputElement>;
+  placeholder?: string;
+  disabled?: boolean;
+  readOnly?: boolean;
+  required?: boolean;
+  // Add any other HTML input attributes you need
+  [x: string]: any;
 }
 
 const InputGroupFixed = forwardRef<HTMLInputElement, InputGroupProps>(

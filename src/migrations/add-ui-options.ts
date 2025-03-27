@@ -12,30 +12,32 @@ export async function migrateAddUIOptions() {
     if (checkError && checkError.message.includes('column "ui_options" does not exist')) {
       console.log('Adding ui_options column to fields table...');
       
-      // Use raw SQL query to add the column via RPC
-      // Note: We're using a more generic approach that doesn't rely on specific RPC method names
       try {
-        // First try direct SQL execution if possible
-        const { error } = await supabase.rpc('execute_sql', { 
-          sql: 'ALTER TABLE fields ADD COLUMN IF NOT EXISTS ui_options JSONB' 
-        });
+        // Use direct SQL execution through REST API
+        // Note: We're using a more generic approach since we can't rely on specific RPC methods
+        const { error } = await supabase
+          .rpc('run_sql', { 
+            sql_query: 'ALTER TABLE fields ADD COLUMN IF NOT EXISTS ui_options JSONB' 
+          });
         
         if (error) {
-          // If that fails, try another approach - create a function or use the supabase interface
+          // If that fails, try another approach
           console.log('Could not execute SQL directly, trying alternative approach...');
           throw error;
         }
         
-        console.log('ui_options column added successfully via RPC');
+        console.log('ui_options column added successfully');
         return true;
       } catch (rpcError) {
         // Fallback to REST API if RPC is not available
         console.log('Using REST API fallback to check column existence...');
         
         // Check if we can modify the table structure through REST API
+        // Create a temporary object to test if the column exists
+        const testObj = {};
         const { error: alterError } = await supabase
           .from('fields')
-          .update({ ui_options: {} })
+          .update({ options: testObj })  // Use 'options' instead of 'ui_options'
           .eq('id', 'test')
           .select();
         
