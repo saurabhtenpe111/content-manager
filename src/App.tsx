@@ -15,6 +15,9 @@ import ContentItemEditor from './pages/ContentItemEditor';
 import ContentItems from './pages/ContentItems';
 import FieldsLibrary from './pages/FieldsLibrary';
 
+// Import the layouts
+import RootLayout from '@/layouts/RootLayout';
+
 // Authentication context
 import { AuthProvider } from '@/hooks/useAuth';
 
@@ -34,7 +37,7 @@ function App() {
         <Router>
           <Routes>
             {/* Main routes */}
-            <Route path="/">
+            <Route path="/" element={<RootLayout />}>
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="settings" element={<Settings />} />
               
