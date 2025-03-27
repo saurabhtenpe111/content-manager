@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   BrowserRouter as Router,
@@ -23,7 +22,6 @@ import Users from './pages/Users';
 import Settings from './pages/Settings';
 import NotFound from './pages/NotFound';
 import { ProtectedRoute } from './components/ProtectedRoute';
-import { AuthProvider } from './context/AuthContext';
 import FieldsDemo from './pages/FieldsDemo';
 
 const App = () => {
