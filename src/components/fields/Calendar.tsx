@@ -1,141 +1,317 @@
 
-import * as React from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { DayPicker, DayPickerSingleProps, DayPickerRangeProps } from "react-day-picker";
-import { DateRange } from "react-day-picker";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
-import { buttonVariants } from "@/components/ui/button";
+import React, { useState, useEffect, forwardRef } from 'react';
+import { DayPicker } from 'react-day-picker';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
+import 'react-day-picker/dist/style.css';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarIcon, Clock } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 
-export type CalendarMode = "single" | "range" | "multiple";
+export interface DateRange {
+  from: Date;
+  to?: Date;
+}
 
 export interface CalendarProps {
   value?: Date | Date[] | DateRange | null;
   onChange?: (value: Date | Date[] | DateRange | null) => void;
-  mode?: CalendarMode;
-  className?: string;
-  disabled?: boolean;
-  initialFocus?: boolean;
-  numberOfMonths?: number;
-  showOutsideDays?: boolean;
-  locale?: any; // Using any for locale to avoid importing date-fns/locale types
-  selected?: Date | Date[] | DateRange | null;
-  onSelect?: (date: Date | Date[] | DateRange | null) => void;
   range?: boolean;
+  multiple?: boolean;
   monthsOnly?: boolean;
-  inline?: boolean;
   showTime?: boolean;
+  timeOnly?: boolean;
+  inline?: boolean;
+  disabled?: boolean;
+  multipleMonths?: number;
+  showButtons?: boolean;
+  dateFormat?: string;
+  placeholder?: string;
+  label?: string;
+  helperText?: string;
+  errorMessage?: string;
+  floatingLabel?: boolean;
+  filled?: boolean;
+  showIcon?: boolean;
+  showClear?: boolean;
 }
 
-function Calendar({
-  className,
-  mode = "single",
-  showOutsideDays = true,
-  value,
-  onChange,
-  selected,
-  onSelect,
-  numberOfMonths = 1,
-  disabled,
-  locale,
-  range = false,
-  ...props
-}: CalendarProps) {
-  // Merge external state (value/onChange) with internal props (selected/onSelect)
-  const finalSelected = selected !== undefined ? selected : value;
-  
-  const handleSelect = React.useCallback(
-    (date: Date | Date[] | DateRange | undefined | null) => {
-      if (onSelect) {
-        onSelect(date || null);
-      }
-      if (onChange) {
-        onChange(date || null);
-      }
-    },
-    [onChange, onSelect]
-  );
+// Helper function to format date based on format
+const formatDate = (date: Date | null | undefined, dateFormat: string = 'PP'): string => {
+  if (!date) return '';
+  return format(date, dateFormat);
+};
 
-  // Create the appropriate props based on the mode
-  const calendarProps = React.useMemo(() => {
-    if (mode === "range" || range) {
-      const rangeProps: DayPickerRangeProps = {
-        mode: "range",
-        selected: finalSelected as DateRange,
-        onSelect: handleSelect as (range: DateRange | undefined) => void,
-        disabled,
-        numberOfMonths,
-      };
-      return rangeProps;
-    }
+// Helper function to format time
+const formatTime = (date: Date | null | undefined): string => {
+  if (!date) return '';
+  return format(date, 'hh:mm a');
+};
 
-    if (mode === "multiple") {
-      return {
-        mode: "multiple",
-        selected: finalSelected as Date[],
-        onSelect: handleSelect as (dates: Date[] | undefined) => void,
-        disabled,
-        numberOfMonths,
-      };
-    }
+// Custom footer component for the calendar
+const CalendarFooter = ({ 
+  date, 
+  showTime, 
+  onChange 
+}: { 
+  date?: Date | null; 
+  showTime?: boolean; 
+  onChange?: (date: Date) => void;
+}) => {
+  if (!showTime || !date) return null;
 
-    // Default single mode
-    return {
-      mode: "single",
-      selected: finalSelected as Date,
-      onSelect: handleSelect as (date: Date | undefined) => void,
-      disabled,
-      numberOfMonths,
-    };
-  }, [mode, range, finalSelected, handleSelect, disabled, numberOfMonths]);
+  const handleHourChange = (hour: string) => {
+    if (!date || !onChange) return;
+    const newDate = new Date(date);
+    newDate.setHours(parseInt(hour, 10));
+    onChange(newDate);
+  };
+
+  const handleMinuteChange = (minute: string) => {
+    if (!date || !onChange) return;
+    const newDate = new Date(date);
+    newDate.setMinutes(parseInt(minute, 10));
+    onChange(newDate);
+  };
 
   return (
-    <DayPicker
-      showOutsideDays={showOutsideDays}
-      className={cn("p-3 pointer-events-auto", className)}
-      locale={locale}
-      classNames={{
-        months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
-        month: "space-y-4",
-        caption: "flex justify-center pt-1 relative items-center",
-        caption_label: "text-sm font-medium",
-        nav: "space-x-1 flex items-center",
-        nav_button: cn(
-          buttonVariants({ variant: "outline" }),
-          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100"
-        ),
-        nav_button_previous: "absolute left-1",
-        nav_button_next: "absolute right-1",
-        table: "w-full border-collapse space-y-1",
-        head_row: "flex",
-        head_cell:
-          "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
-        row: "flex w-full mt-2",
-        cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-        day: cn(
-          buttonVariants({ variant: "ghost" }),
-          "h-9 w-9 p-0 font-normal aria-selected:opacity-100"
-        ),
-        day_range_end: "day-range-end",
-        day_selected:
-          "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-        day_today: "bg-accent text-accent-foreground",
-        day_outside:
-          "day-outside text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
-        day_disabled: "text-muted-foreground opacity-50",
-        day_range_middle:
-          "aria-selected:bg-accent aria-selected:text-accent-foreground",
-        day_hidden: "invisible",
-      }}
-      components={{
-        IconLeft: () => <ChevronLeft className="h-4 w-4" />,
-        IconRight: () => <ChevronRight className="h-4 w-4" />,
-      }}
-      {...calendarProps}
-      {...props}
-    />
+    <div className="p-3 border-t border-gray-200">
+      <div className="flex items-center">
+        <Clock className="mr-2 h-4 w-4 text-gray-500" />
+        <Label className="text-sm text-gray-600">Time:</Label>
+        <Select 
+          value={date.getHours().toString().padStart(2, '0')} 
+          onValueChange={handleHourChange}
+        >
+          <SelectTrigger className="w-16 h-8 ml-2">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {Array.from({ length: 24 }).map((_, i) => (
+              <SelectItem key={i} value={i.toString().padStart(2, '0')}>
+                {i.toString().padStart(2, '0')}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <span className="mx-1">:</span>
+        <Select 
+          value={date.getMinutes().toString().padStart(2, '0')} 
+          onValueChange={handleMinuteChange}
+        >
+          <SelectTrigger className="w-16 h-8">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {Array.from({ length: 60 }).map((_, i) => (
+              <SelectItem key={i} value={i.toString().padStart(2, '0')}>
+                {i.toString().padStart(2, '0')}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
   );
-}
-Calendar.displayName = "Calendar";
+};
 
-export { Calendar };
+export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(
+  ({
+    value,
+    onChange,
+    range = false,
+    multiple = false,
+    monthsOnly = false,
+    showTime = false,
+    timeOnly = false,
+    inline = false,
+    disabled = false,
+    multipleMonths = 1,
+    showButtons = false,
+    dateFormat = 'PP',
+    placeholder = 'Select date',
+    label,
+    helperText,
+    errorMessage,
+    floatingLabel = false,
+    filled = false,
+    showIcon = true,
+    showClear = false
+  }, ref) => {
+    // Set up state for the selected date(s)
+    const [date, setDate] = useState<Date | Date[] | DateRange | null>(value || null);
+    const [isOpen, setIsOpen] = useState(false);
+
+    // Update internal state when the value prop changes
+    useEffect(() => {
+      setDate(value || null);
+    }, [value]);
+
+    // Handle date selection
+    const handleSelect = (newDate: Date | Date[] | DateRange | null | undefined) => {
+      setDate(newDate || null);
+      
+      if (onChange) {
+        onChange(newDate || null);
+      }
+      
+      if (!range && !multiple && !showButtons) {
+        setIsOpen(false);
+      }
+    };
+
+    // Format for display
+    const getFormattedValue = (): string => {
+      if (!date) return '';
+      
+      if (Array.isArray(date)) {
+        return date.map(d => formatDate(d, dateFormat)).join(', ');
+      }
+      
+      if (date instanceof Date) {
+        return showTime ? `${formatDate(date, dateFormat)} ${formatTime(date)}` : formatDate(date, dateFormat);
+      }
+      
+      // Handle DateRange
+      if ('from' in date) {
+        const fromFormatted = formatDate(date.from, dateFormat);
+        const toFormatted = date.to ? formatDate(date.to, dateFormat) : '';
+        return toFormatted ? `${fromFormatted} - ${toFormatted}` : fromFormatted;
+      }
+      
+      return '';
+    };
+
+    // Render the inline calendar
+    if (inline) {
+      return (
+        <div className="space-y-2" ref={ref}>
+          {label && <Label className="text-sm font-medium">{label}</Label>}
+          <DayPicker
+            mode={range ? "range" : multiple ? "multiple" : "single"}
+            selected={date as any}
+            onSelect={handleSelect as any}
+            disabled={disabled}
+            numberOfMonths={multipleMonths}
+            captionLayout={multipleMonths > 1 ? "dropdown" : "buttons"}
+            showOutsideDays
+            fixedWeeks
+            className={cn(
+              "border rounded-md bg-white shadow-sm p-3",
+              errorMessage && "border-red-500"
+            )}
+            footer={showTime && !range && !multiple && date instanceof Date ? (
+              <CalendarFooter 
+                date={date} 
+                showTime={showTime} 
+                onChange={(newDate) => handleSelect(newDate)} 
+              />
+            ) : undefined}
+          />
+          {helperText && <p className="text-sm text-gray-500">{helperText}</p>}
+          {errorMessage && <p className="text-sm text-red-500">{errorMessage}</p>}
+        </div>
+      );
+    }
+
+    // Render the popover calendar
+    return (
+      <div className="space-y-2" ref={ref}>
+        {label && <Label className="text-sm font-medium">{label}</Label>}
+        <Popover open={isOpen} onOpenChange={setIsOpen}>
+          <PopoverTrigger asChild>
+            <div className="relative">
+              <Input
+                value={getFormattedValue()}
+                placeholder={placeholder}
+                className={cn(
+                  "cursor-pointer",
+                  (showIcon || showClear) && "pr-10",
+                  errorMessage && "border-red-500",
+                  filled && "bg-gray-100"
+                )}
+                readOnly
+                onClick={() => !disabled && setIsOpen(true)}
+                disabled={disabled}
+              />
+              {showIcon && (
+                <CalendarIcon 
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" 
+                />
+              )}
+              {showClear && date && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="absolute right-0 top-0 h-full px-3"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSelect(null);
+                  }}
+                >
+                  &times;
+                </Button>
+              )}
+            </div>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <DayPicker
+              mode={range ? "range" : multiple ? "multiple" : "single"}
+              selected={date as any}
+              onSelect={handleSelect as any}
+              disabled={disabled}
+              numberOfMonths={multipleMonths}
+              captionLayout={multipleMonths > 1 ? "dropdown" : "buttons"}
+              showOutsideDays
+              fixedWeeks
+              className="border-none shadow-none p-3"
+              footer={showTime && !range && !multiple && date instanceof Date ? (
+                <CalendarFooter 
+                  date={date} 
+                  showTime={showTime} 
+                  onChange={(newDate) => handleSelect(newDate)} 
+                />
+              ) : undefined}
+            />
+            {showButtons && (
+              <div className="flex items-center justify-end gap-2 p-3 border-t">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setIsOpen(false);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => {
+                    setIsOpen(false);
+                  }}
+                >
+                  Apply
+                </Button>
+              </div>
+            )}
+          </PopoverContent>
+        </Popover>
+        {helperText && <p className="text-sm text-gray-500">{helperText}</p>}
+        {errorMessage && <p className="text-sm text-red-500">{errorMessage}</p>}
+      </div>
+    );
+  }
+);
+
+Calendar.displayName = "Calendar";

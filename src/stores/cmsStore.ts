@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { supabase } from '@/integrations/supabase/client';
 import { ContentType as ContentTypeType } from '@/integrations/supabase/contentTypes';
@@ -27,6 +28,7 @@ export type FieldType =
   | 'treeselect'
   | 'mentionbox'
   | 'selectbutton'
+  | 'rating'
   | 'multistatecheckbox';
 
 export interface UiOptions {
@@ -99,11 +101,12 @@ interface CmsStore {
   setActiveField: (field: Field | null) => void;
   setActiveContentType: (contentTypeId: string | null) => void;
   fetchContentTypes: () => Promise<void>;
-  createContentType: (contentType: Omit<ContentType, 'id' | 'fields'>) => Promise<string>;
+  createContentType: (contentType: Omit<ContentType, 'id' | 'fields' | 'created_at' | 'updated_at' | 'user_id'>) => Promise<string>;
   updateContentType: (contentTypeId: string, updates: Partial<ContentType>) => void;
   deleteContentType: (contentTypeId: string) => void;
   addField: (contentTypeId: string, field: Omit<Field, 'id'>) => Promise<string>;
   updateField: (contentTypeId: string, fieldId: string, updates: Partial<Field>) => void;
+  updateSubfield: (contentTypeId: string, parentFieldId: string, subfieldIndex: number, updates: Partial<Field>) => void;
   deleteField: (contentTypeId: string, fieldId: string) => void;
   reorderFields: (contentTypeId: string, newOrder: string[]) => void;
   getFieldById: (contentTypeId: string, fieldId: string) => Field | undefined;
@@ -155,13 +158,15 @@ export const useCmsStore = create<CmsStore>((set, get) => ({
               ? field.options as any
               : [];
             
-            const uiOptions = field.ui_options && typeof field.ui_options === 'object'
-              ? field.ui_options as UiOptions
-              : {};
+            // Handle ui_options (ensure it's defined in database)
+            let uiOptions: UiOptions = {};
+            if (field.ui_options) {
+              uiOptions = typeof field.ui_options === 'object'
+                ? field.ui_options as UiOptions
+                : {};
+            }
             
-            const defaultValue = typeof field.default_value === 'object'
-              ? field.default_value
-              : field.default_value;
+            const defaultValue = field.default_value;
             
             return {
               id: field.id,
@@ -208,30 +213,35 @@ export const useCmsStore = create<CmsStore>((set, get) => ({
   
   createContentType: async (contentType) => {
     try {
+      const newContentType = {
+        name: contentType.name,
+        description: contentType.description || '',
+        is_published: false,
+        api_id: contentType.api_id || contentType.name.toLowerCase().replace(/\s+/g, '_'),
+        api_id_plural: contentType.api_id_plural || `${contentType.name.toLowerCase().replace(/\s+/g, '_')}s`,
+        is_collection: contentType.is_collection || true,
+      };
+      
       const { data, error } = await supabase
         .from('content_types')
-        .insert([{
-          name: contentType.name,
-          description: contentType.description || '',
-          is_published: false,
-          api_id: contentType.api_id || contentType.name.toLowerCase().replace(/\s+/g, '_'),
-          api_id_plural: contentType.api_id_plural || `${contentType.name.toLowerCase().replace(/\s+/g, '_')}s`,
-          is_collection: contentType.is_collection || true,
-        }])
+        .insert([newContentType])
         .select()
         .single();
       
       if (error) throw error;
       
       if (data) {
+        const newType: ContentType = {
+          ...data,
+          description: data.description || '',
+          api_id: data.api_id || '',
+          api_id_plural: data.api_id_plural || '',
+          is_collection: data.is_collection || false,
+          fields: [],
+        };
+        
         set((state) => ({
-          contentTypes: [
-            {
-              ...data,
-              fields: [],
-            },
-            ...state.contentTypes,
-          ],
+          contentTypes: [newType, ...state.contentTypes],
         }));
         
         return data.id;
@@ -361,7 +371,7 @@ export const useCmsStore = create<CmsStore>((set, get) => ({
         validation: typeof data.validation === 'object' ? data.validation as any : { required: false },
         options: typeof data.options === 'object' ? data.options as any : [],
         isHidden: data.is_hidden,
-        uiOptions: data.ui_options && typeof data.ui_options === 'object' ? data.ui_options as UiOptions : {},
+        uiOptions: data.ui_options ? (typeof data.ui_options === 'object' ? data.ui_options as UiOptions : {}) : {},
         subfields: field.subfields || []
       };
       
@@ -381,16 +391,6 @@ export const useCmsStore = create<CmsStore>((set, get) => ({
   
   updateField: async (contentTypeId, fieldId, updates) => {
     try {
-      // Special handling for subfields
-      if (updates._parentFieldId && updates._subfieldIndex !== undefined) {
-        return get().updateSubfield(
-          contentTypeId,
-          updates._parentFieldId,
-          updates._subfieldIndex,
-          updates
-        );
-      }
-      
       const contentTypeIndex = get().contentTypes.findIndex(
         (ct) => ct.id === contentTypeId
       );
@@ -501,16 +501,14 @@ export const useCmsStore = create<CmsStore>((set, get) => ({
       
       // Convert to database format
       const dbUpdates = {
-        subfields: updatedParentField.subfields || []
+        options: JSON.stringify(updatedSubfields) // Store subfields in options for now
       };
       
       console.log('Updating parent field with new subfields:', dbUpdates);
       
       const { error } = await supabase
         .from('fields')
-        .update({
-          options: dbUpdates.subfields // Store subfields in options for now
-        })
+        .update(dbUpdates)
         .eq('id', parentFieldId)
         .eq('content_type_id', contentTypeId);
       

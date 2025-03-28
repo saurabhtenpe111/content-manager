@@ -14,10 +14,14 @@ export async function migrateAddUIOptions() {
       console.log('Adding ui_options column to fields table...');
       
       try {
-        // Use raw SQL to alter the table since RPC might not be available
-        const { error } = await supabase.rpc('execute_sql', { 
-          sql: 'ALTER TABLE fields ADD COLUMN IF NOT EXISTS ui_options JSONB'
-        });
+        // Use a direct SQL query since RPC might not be available
+        const { error } = await supabase
+          .rpc('add_column_if_not_exists', { 
+            table_name: 'fields',
+            column_name: 'ui_options',
+            column_type: 'JSONB'
+          })
+          .maybeSingle();
         
         if (error) {
           // If direct SQL execution fails, try an alternative approach
