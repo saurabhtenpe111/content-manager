@@ -1,206 +1,214 @@
 
-import React from 'react';
-import { CMSLayout } from '@/components/layout/CMSLayout';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { useCmsStore } from '@/stores/cmsStore';
-import { 
-  Database, 
-  FileType, 
-  Users, 
-  LayoutTemplate,
-  ArrowRight
-} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { CMSLayout } from '@/components/layout/CMSLayout';
+import { useCmsStore } from '@/stores/cmsStore';
+import { Card, CardContent } from '@/components/ui/card';
+import { useAuth } from '@/hooks/useAuth';
+import { Database, FileText, FormInput, Users } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
-  const { contentTypes } = useCmsStore();
+  const { contentTypes, fetchContentTypes } = useCmsStore();
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    contentTypes: 0,
+    fields: 0,
+    forms: 0,
+    users: 1 // Default to 1 (current user)
+  });
+  
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        await fetchContentTypes();
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadData();
+  }, [fetchContentTypes]);
+  
+  useEffect(() => {
+    if (contentTypes) {
+      const fieldCount = contentTypes.reduce((acc, ct) => acc + ct.fields.length, 0);
+      
+      setStats({
+        contentTypes: contentTypes.length,
+        fields: fieldCount,
+        forms: contentTypes.length, // Assuming one form per content type
+        users: user ? 1 : 0
+      });
+    }
+  }, [contentTypes, user]);
+  
+  if (loading) {
+    return (
+      <CMSLayout>
+        <div className="flex justify-center items-center h-[50vh]">
+          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+          <span className="ml-2">Loading dashboard...</span>
+        </div>
+      </CMSLayout>
+    );
+  }
   
   return (
     <CMSLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-cms-gray-900">Dashboard</h1>
-          <p className="text-cms-gray-600 mt-1">
+          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-gray-600 mt-1">
             Welcome to FormWise CMS. Manage your content types, forms, and user permissions.
           </p>
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatsCard 
-            title="Content Types"
-            value={contentTypes.length.toString()}
-            description="Total content types"
-            icon={<Database size={24} />}
-            color="bg-blue-50 text-blue-600"
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Content Types</p>
+                  <h3 className="text-3xl font-bold mt-1">{stats.contentTypes}</h3>
+                  <p className="text-xs text-gray-500 mt-1">Total content types</p>
+                </div>
+                <div className="bg-blue-100 p-3 rounded-full">
+                  <Database className="h-6 w-6 text-blue-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
           
-          <StatsCard 
-            title="Fields"
-            value={contentTypes.reduce((acc, ct) => acc + ct.fields.length, 0).toString()}
-            description="Total fields"
-            icon={<FileType size={24} />}
-            color="bg-green-50 text-green-600"
-          />
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Fields</p>
+                  <h3 className="text-3xl font-bold mt-1">{stats.fields}</h3>
+                  <p className="text-xs text-gray-500 mt-1">Total fields</p>
+                </div>
+                <div className="bg-green-100 p-3 rounded-full">
+                  <FileText className="h-6 w-6 text-green-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
           
-          <StatsCard 
-            title="Forms"
-            value="0"
-            description="Active forms"
-            icon={<LayoutTemplate size={24} />}
-            color="bg-purple-50 text-purple-600"
-          />
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Forms</p>
+                  <h3 className="text-3xl font-bold mt-1">{stats.forms}</h3>
+                  <p className="text-xs text-gray-500 mt-1">Active forms</p>
+                </div>
+                <div className="bg-purple-100 p-3 rounded-full">
+                  <FormInput className="h-6 w-6 text-purple-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
           
-          <StatsCard 
-            title="Users"
-            value="1"
-            description="Active users"
-            icon={<Users size={24} />}
-            color="bg-orange-50 text-orange-600"
-          />
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Users</p>
+                  <h3 className="text-3xl font-bold mt-1">{stats.users}</h3>
+                  <p className="text-xs text-gray-500 mt-1">Active users</p>
+                </div>
+                <div className="bg-orange-100 p-3 rounded-full">
+                  <Users className="h-6 w-6 text-orange-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card>
-            <CardHeader>
-              <CardTitle>Recent Content Types</CardTitle>
-              <CardDescription>
-                Recently created or updated content types
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {contentTypes.length > 0 ? (
-                <div className="space-y-2">
-                  {contentTypes.slice(0, 5).map((contentType) => (
-                    <div 
-                      key={contentType.id}
-                      className="flex items-center justify-between p-3 border border-cms-gray-200 rounded-md hover:border-cms-blue transition-all duration-200"
+            <CardContent className="pt-6">
+              <h3 className="text-lg font-medium mb-4">Recent Content Types</h3>
+              {contentTypes.length === 0 ? (
+                <p className="text-sm text-gray-500">No content types created yet.</p>
+              ) : (
+                <div className="space-y-3">
+                  {contentTypes.slice(0, 3).map((contentType) => (
+                    <Link 
+                      key={contentType.id} 
+                      to={`/content-types/${contentType.id}`}
+                      className="flex items-center p-3 rounded-md hover:bg-gray-50 transition-colors"
                     >
+                      <Database className="h-5 w-5 text-gray-500 mr-3" />
                       <div>
-                        <h3 className="font-medium text-cms-gray-800">{contentType.name}</h3>
-                        <p className="text-sm text-cms-gray-500">
-                          {contentType.fields.length} fields • Updated {new Date(contentType.updatedAt).toLocaleDateString()}
+                        <p className="font-medium">{contentType.name}</p>
+                        <p className="text-xs text-gray-500">
+                          {contentType.fields.length} fields • Updated recently
                         </p>
                       </div>
-                      <Link to={`/content-types/${contentType.id}`}>
-                        <Button variant="ghost" size="sm">
-                          <ArrowRight size={16} />
-                        </Button>
-                      </Link>
-                    </div>
+                    </Link>
                   ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-8 text-center">
-                  <Database size={40} className="text-cms-gray-300 mb-2" />
-                  <h3 className="text-lg font-medium text-cms-gray-600 mb-1">No content types yet</h3>
-                  <p className="text-cms-gray-500 mb-4">Create your first content type to get started</p>
-                  <Link to="/content-types/new">
-                    <Button>Create Content Type</Button>
-                  </Link>
                 </div>
               )}
             </CardContent>
           </Card>
           
           <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>
-                Common tasks and actions
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <QuickActionCard 
-                  title="Create Content Type"
-                  description="Define a new content structure"
-                  icon={<Database size={20} />}
-                  to="/content-types/new"
-                />
+            <CardContent className="pt-6">
+              <h3 className="text-lg font-medium mb-4">Quick Actions</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <Link 
+                  to="/content-types/new" 
+                  className="p-4 border rounded-md hover:bg-gray-50 transition-colors flex items-center"
+                >
+                  <Database className="h-5 w-5 mr-3 text-blue-600" />
+                  <div>
+                    <p className="font-medium">Create Content Type</p>
+                    <p className="text-xs text-gray-500">Define a new collection</p>
+                  </div>
+                </Link>
                 
-                <QuickActionCard 
-                  title="Build a Form"
-                  description="Create a new form layout"
-                  icon={<LayoutTemplate size={20} />}
-                  to="/form-builder"
-                />
+                <Link 
+                  to="/form-builder" 
+                  className="p-4 border rounded-md hover:bg-gray-50 transition-colors flex items-center"
+                >
+                  <FormInput className="h-5 w-5 mr-3 text-purple-600" />
+                  <div>
+                    <p className="font-medium">Build a Form</p>
+                    <p className="text-xs text-gray-500">Create a new form</p>
+                  </div>
+                </Link>
                 
-                <QuickActionCard 
-                  title="Field Library"
-                  description="Browse available field types"
-                  icon={<FileType size={20} />}
-                  to="/fields-library"
-                />
+                <Link 
+                  to="/fields-library" 
+                  className="p-4 border rounded-md hover:bg-gray-50 transition-colors flex items-center"
+                >
+                  <FileText className="h-5 w-5 mr-3 text-green-600" />
+                  <div>
+                    <p className="font-medium">Field Library</p>
+                    <p className="text-xs text-gray-500">Browse available fields</p>
+                  </div>
+                </Link>
                 
-                <QuickActionCard 
-                  title="Manage Users"
-                  description="Add or edit user permissions"
-                  icon={<Users size={20} />}
-                  to="/users"
-                />
+                <Link 
+                  to="/settings" 
+                  className="p-4 border rounded-md hover:bg-gray-50 transition-colors flex items-center"
+                >
+                  <Users className="h-5 w-5 mr-3 text-orange-600" />
+                  <div>
+                    <p className="font-medium">Manage Users</p>
+                    <p className="text-xs text-gray-500">Add or edit users</p>
+                  </div>
+                </Link>
               </div>
             </CardContent>
           </Card>
         </div>
       </div>
     </CMSLayout>
-  );
-};
-
-interface StatsCardProps {
-  title: string;
-  value: string;
-  description: string;
-  icon: React.ReactNode;
-  color: string;
-}
-
-const StatsCard: React.FC<StatsCardProps> = ({ title, value, description, icon, color }) => {
-  return (
-    <Card>
-      <CardContent className="pt-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-cms-gray-500">{title}</p>
-            <p className="text-3xl font-bold">{value}</p>
-            <p className="text-xs text-cms-gray-500 mt-1">{description}</p>
-          </div>
-          <div className={`p-3 rounded-full ${color}`}>
-            {icon}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
-
-interface QuickActionCardProps {
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-  to: string;
-}
-
-const QuickActionCard: React.FC<QuickActionCardProps> = ({ title, description, icon, to }) => {
-  return (
-    <Link to={to}>
-      <div className="flex items-center space-x-3 p-3 border border-cms-gray-200 rounded-md hover:border-cms-blue hover:bg-cms-gray-50 transition-all duration-200">
-        <div className="p-2 bg-cms-gray-100 rounded-full">
-          {icon}
-        </div>
-        <div>
-          <h3 className="font-medium text-cms-gray-800">{title}</h3>
-          <p className="text-xs text-cms-gray-500">{description}</p>
-        </div>
-      </div>
-    </Link>
   );
 };
 

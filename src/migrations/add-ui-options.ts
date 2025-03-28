@@ -9,51 +9,37 @@ export async function migrateAddUIOptions() {
       .select('ui_options')
       .limit(1);
     
+    // If there's an error saying the column doesn't exist, we need to add it
     if (checkError && checkError.message.includes('column "ui_options" does not exist')) {
       console.log('Adding ui_options column to fields table...');
       
       try {
-        // Use direct SQL execution through REST API
-        // Note: We're using a more generic approach since we can't rely on specific RPC methods
-        const { error } = await supabase
-          .rpc('run_sql', { 
-            sql_query: 'ALTER TABLE fields ADD COLUMN IF NOT EXISTS ui_options JSONB' 
-          });
+        // Use SQL to alter the table
+        const { error } = await supabase.rpc('execute_sql', { 
+          query: 'ALTER TABLE fields ADD COLUMN IF NOT EXISTS ui_options JSONB'
+        });
         
         if (error) {
-          // If that fails, try another approach
+          // If direct SQL execution fails, try an alternative approach
           console.log('Could not execute SQL directly, trying alternative approach...');
-          throw error;
+          console.log('Migration functionality is not available - please add the ui_options column manually');
+          console.log('You can run this SQL in your Supabase SQL editor:');
+          console.log('ALTER TABLE fields ADD COLUMN IF NOT EXISTS ui_options JSONB');
+          return false;
         }
         
         console.log('ui_options column added successfully');
         return true;
       } catch (rpcError) {
-        // Fallback to REST API if RPC is not available
-        console.log('Using REST API fallback to check column existence...');
-        
-        // Check if we can modify the table structure through REST API
-        // Create a temporary object to test if the column exists
-        const testObj = {};
-        const { error: alterError } = await supabase
-          .from('fields')
-          .update({ options: testObj })  // Use 'options' instead of 'ui_options'
-          .eq('id', 'test')
-          .select();
-        
-        if (alterError && alterError.message.includes('column "ui_options" does not exist')) {
-          console.log('Migration functionality is not available - please add the ui_options column manually');
-          console.log('You can run this SQL in your Supabase SQL editor:');
-          console.log('ALTER TABLE fields ADD COLUMN IF NOT EXISTS ui_options JSONB');
-          return false;
-        } else {
-          console.log('ui_options column appears to exist or was added');
-          return true;
-        }
+        // Provide helpful error message if migration fails
+        console.log('Migration functionality is not available - please add the ui_options column manually');
+        console.log('You can run this SQL in your Supabase SQL editor:');
+        console.log('ALTER TABLE fields ADD COLUMN IF NOT EXISTS ui_options JSONB');
+        return false;
       }
     } else {
       console.log('ui_options column already exists in fields table');
-      return false;
+      return true;
     }
   } catch (error) {
     console.error('Migration failed:', error);
