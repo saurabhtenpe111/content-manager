@@ -14,18 +14,17 @@ export async function migrateAddUIOptions() {
       console.log('Adding ui_options column to fields table...');
       
       try {
-        // Use a direct SQL query since RPC might not be available
+        // Execute SQL directly since we can't use RPC
         const { error } = await supabase
           .rpc('add_column_if_not_exists', { 
             table_name: 'fields',
             column_name: 'ui_options',
             column_type: 'JSONB'
-          })
-          .maybeSingle();
+          });
         
         if (error) {
-          // If direct SQL execution fails, try an alternative approach
-          console.log('Could not execute SQL directly, trying alternative approach...');
+          // If the RPC execution fails, provide a helpful message
+          console.log('Could not execute RPC directly, trying alternative approach...');
           console.log('Migration functionality is not available - please add the ui_options column manually');
           console.log('You can run this SQL in your Supabase SQL editor:');
           console.log('ALTER TABLE fields ADD COLUMN IF NOT EXISTS ui_options JSONB');

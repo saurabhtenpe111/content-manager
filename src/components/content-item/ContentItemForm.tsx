@@ -16,19 +16,11 @@ import {
   DialogDescription,
   DialogFooter
 } from '@/components/ui/dialog';
-import { 
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage
-} from "@/components/ui/form"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import * as z from "zod"
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { FieldRenderer } from '@/components/fields/FieldRenderer';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface ContentItemFormProps {
   contentTypeId: string;
@@ -38,12 +30,6 @@ export interface ContentItemFormProps {
   onClose?: () => void;
 }
 
-const formSchema = z.object({
-  name: z.string().min(2, {
-    message: "Username must be at least 2 characters.",
-  }),
-})
-
 export const ContentItemForm: React.FC<ContentItemFormProps> = ({ 
   contentTypeId, 
   contentTypeName,
@@ -52,14 +38,56 @@ export const ContentItemForm: React.FC<ContentItemFormProps> = ({
   onClose
 }) => {
   const navigate = useNavigate();
-  const { contentTypes } = useCmsStore();
+  const { contentTypes, fetchContentTypes } = useCmsStore();
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
   
   const contentType = contentTypes.find((ct) => ct.id === contentTypeId);
   
   useEffect(() => {
+    if (contentTypes.length === 0) {
+      fetchContentTypes().then(() => {
+        setLoading(false);
+      }).catch(error => {
+        console.error('Error fetching content types:', error);
+        toast.error('Failed to load content type data');
+        setLoading(false);
+      });
+    } else {
+      setLoading(false);
+    }
+  }, [contentTypes, fetchContentTypes]);
+  
+  useEffect(() => {
+    const fetchContentItem = async () => {
+      if (contentItemId) {
+        try {
+          const { data, error } = await supabase
+            .from('content_items')
+            .select('*')
+            .eq('id', contentItemId)
+            .eq('content_type_id', contentTypeId)
+            .single();
+          
+          if (error) throw error;
+          
+          if (data) {
+            const itemData = typeof data.data === 'string' 
+              ? JSON.parse(data.data) 
+              : data.data;
+            
+            setFormData(itemData);
+          }
+        } catch (error) {
+          console.error('Error fetching content item:', error);
+          toast.error('Failed to load content item');
+        }
+      }
+    };
+    
     if (contentType) {
       // Initialize form data with default values from the content type's fields
       const initialData: Record<string, any> = {};
@@ -67,8 +95,12 @@ export const ContentItemForm: React.FC<ContentItemFormProps> = ({
         initialData[field.name] = field.defaultValue || '';
       });
       setFormData(initialData);
+      
+      if (contentItemId) {
+        fetchContentItem();
+      }
     }
-  }, [contentType, contentTypeId]);
+  }, [contentType, contentTypeId, contentItemId]);
   
   const handleFieldChange = (fieldName: string, value: any) => {
     setFormData((prevData) => ({
@@ -96,7 +128,7 @@ export const ContentItemForm: React.FC<ContentItemFormProps> = ({
       const value = formData[field.name];
       const validation = field.validation;
       
-      if (validation?.required && !value) {
+      if (validation?.required && !value && value !== 0 && value !== false) {
         newErrors[field.name] = `${field.label} is required`;
         isValid = false;
         return;
@@ -136,34 +168,107 @@ export const ContentItemForm: React.FC<ContentItemFormProps> = ({
       return;
     }
     
-    // Handle form submission logic here
-    console.log('Form data:', formData);
-    toast.success('Form submitted successfully!');
+    setIsSubmitting(true);
+    
+    try {
+      const item = {
+        content_type_id: contentTypeId,
+        data: formData,
+        status: 'draft' // Default status
+      };
+      
+      if (contentItemId) {
+        // Update existing item
+        const { error } = await supabase
+          .from('content_items')
+          .update(item)
+          .eq('id', contentItemId);
+        
+        if (error) throw error;
+        
+        toast.success('Content item updated successfully!');
+      } else {
+        // Create new item
+        const { error } = await supabase
+          .from('content_items')
+          .insert([item]);
+        
+        if (error) throw error;
+        
+        toast.success('Content item created successfully!');
+      }
+      
+      // Redirect after successful save
+      if (onClose) {
+        onClose();
+      } else {
+        navigate(`/content/${contentTypeId}`);
+      }
+    } catch (error) {
+      console.error('Error saving content item:', error);
+      toast.error('Failed to save content item');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   
-  const handleDelete = () => {
-    // Handle delete logic here
-    console.log('Deleting content item');
-    toast.success('Content item deleted successfully!');
-    onClose?.();
+  const handleDelete = async () => {
+    if (!contentItemId) return;
+    
+    setIsSubmitting(true);
+    
+    try {
+      const { error } = await supabase
+        .from('content_items')
+        .delete()
+        .eq('id', contentItemId);
+      
+      if (error) throw error;
+      
+      toast.success('Content item deleted successfully!');
+      
+      if (onClose) {
+        onClose();
+      } else {
+        navigate(`/content/${contentTypeId}`);
+      }
+    } catch (error) {
+      console.error('Error deleting content item:', error);
+      toast.error('Failed to delete content item');
+    } finally {
+      setIsSubmitting(false);
+      setShowDeleteDialog(false);
+    }
   };
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: "",
-    },
-  })
+  
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-8">
+        <p>Loading content form...</p>
+      </div>
+    );
+  }
+  
+  if (!contentType) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-red-500">Content type not found</p>
+        <Button className="mt-4" onClick={() => navigate('/content-types')}>
+          Back to Content Types
+        </Button>
+      </div>
+    );
+  }
   
   return (
     <div className="space-y-6">
-      <div className="border-b border-cms-gray-200 pb-4">
+      <div className="border-b border-gray-200 pb-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-cms-gray-900">
+            <h1 className="text-2xl font-bold text-gray-900">
               {contentItemId ? 'Edit Content Item' : 'Create Content Item'}
             </h1>
-            <p className="text-cms-gray-600 mt-1">
+            <p className="text-gray-600 mt-1">
               {contentType?.description || 'Fill in the details for this content item.'}
             </p>
           </div>
@@ -172,29 +277,30 @@ export const ContentItemForm: React.FC<ContentItemFormProps> = ({
             {contentItemId && (
               <Button 
                 variant="outline" 
-                className="text-destructive hover:bg-destructive/10"
+                className="text-red-500 hover:bg-red-50"
                 onClick={() => setShowDeleteDialog(true)}
-                disabled={isReadOnly}
+                disabled={isReadOnly || isSubmitting}
               >
                 Delete
               </Button>
             )}
             
-            <Button onClick={handleSubmit} disabled={isReadOnly}>
-              Save
+            <Button 
+              onClick={handleSubmit} 
+              disabled={isReadOnly || isSubmitting}
+            >
+              {isSubmitting ? 'Saving...' : 'Save'}
             </Button>
           </div>
         </div>
       </div>
       
-      <div className="bg-white rounded-md shadow-md p-6">
-        <h2 className="text-xl font-semibold text-cms-gray-800 mb-4">
+      <div className="bg-white rounded-md shadow-sm p-6">
+        <h2 className="text-xl font-semibold text-gray-800 mb-4">
           {contentTypeName} Details
         </h2>
         
-        <form onSubmit={form.handleSubmit((values) => {
-          console.log(values)
-        })} className="space-y-4">
+        <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
           {contentType?.fields.map((field) => (
             <div key={field.id} className="mb-6">
               <FieldRenderer
@@ -202,7 +308,7 @@ export const ContentItemForm: React.FC<ContentItemFormProps> = ({
                 value={formData[field.name]}
                 onChange={(value) => handleFieldChange(field.name, value)}
                 error={errors[field.name] || ''}
-                disabled={isReadOnly}
+                disabled={isReadOnly || isSubmitting}
                 isPreview={false}
               />
             </div>
@@ -219,14 +325,19 @@ export const ContentItemForm: React.FC<ContentItemFormProps> = ({
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowDeleteDialog(false)}
+              disabled={isSubmitting}
+            >
               Cancel
             </Button>
             <Button 
               variant="destructive" 
               onClick={handleDelete}
+              disabled={isSubmitting}
             >
-              Delete
+              {isSubmitting ? 'Deleting...' : 'Delete'}
             </Button>
           </DialogFooter>
         </DialogContent>

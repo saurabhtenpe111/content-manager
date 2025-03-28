@@ -158,7 +158,7 @@ export const useCmsStore = create<CmsStore>((set, get) => ({
               ? field.options as any
               : [];
             
-            // Handle ui_options (ensure it's defined in database)
+            // Handle UI options
             let uiOptions: UiOptions = {};
             if (field.ui_options) {
               uiOptions = typeof field.ui_options === 'object'
@@ -266,16 +266,27 @@ export const useCmsStore = create<CmsStore>((set, get) => ({
         return;
       }
       
+      const updatedData = {
+        name: updates.name,
+        description: updates.description,
+        updated_at: new Date().toISOString(),
+      };
+      
+      if (updates.api_id !== undefined) {
+        updatedData['api_id'] = updates.api_id;
+      }
+      
+      if (updates.api_id_plural !== undefined) {
+        updatedData['api_id_plural'] = updates.api_id_plural;
+      }
+      
+      if (updates.is_collection !== undefined) {
+        updatedData['is_collection'] = updates.is_collection;
+      }
+      
       const { error } = await supabase
         .from('content_types')
-        .update({
-          name: updates.name,
-          description: updates.description,
-          updated_at: new Date().toISOString(),
-          api_id: updates.api_id,
-          api_id_plural: updates.api_id_plural,
-          is_collection: updates.is_collection,
-        })
+        .update(updatedData)
         .eq('id', contentTypeId);
       
       if (error) throw error;
@@ -499,9 +510,10 @@ export const useCmsStore = create<CmsStore>((set, get) => ({
         subfields: updatedSubfields,
       };
       
-      // Convert to database format
+      // Store subfields in options field for now
       const dbUpdates = {
-        options: JSON.stringify(updatedSubfields) // Store subfields in options for now
+        options: updatedSubfields,
+        ui_options: parentField.uiOptions || {}
       };
       
       console.log('Updating parent field with new subfields:', dbUpdates);

@@ -1,75 +1,96 @@
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useCmsStore } from '@/stores/cmsStore';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { useCmsStore } from '@/stores/cmsStore';
 
-interface ContentTypeFormProps {
-  onClose?: () => void;
+export interface ContentTypeFormProps {
+  onClose: () => void;
+  isComponent?: boolean;
+  initialData?: {
+    name: string;
+    description: string;
+    isCollection: boolean;
+  };
 }
 
-export const ContentTypeForm: React.FC<ContentTypeFormProps> = ({ onClose }) => {
-  const navigate = useNavigate();
-  const { createContentType } = useCmsStore();
-  
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
+export const ContentTypeForm: React.FC<ContentTypeFormProps> = ({
+  onClose,
+  isComponent = false,
+  initialData = {
+    name: '',
+    description: '',
+    isCollection: true
+  }
+}) => {
+  const [name, setName] = useState(initialData.name);
+  const [description, setDescription] = useState(initialData.description);
+  const [isCollection, setIsCollection] = useState(initialData.isCollection);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const { createContentType } = useCmsStore();
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!name.trim()) {
-      toast.error('Name is required');
+      toast.error('Please enter a name for the content type');
       return;
     }
     
     setIsSubmitting(true);
     
     try {
-      const contentTypeId = await createContentType({
+      const apiId = name.toLowerCase().replace(/\s+/g, '_');
+      const apiIdPlural = `${apiId}s`;
+      
+      const contentTypeData = {
         name,
         description,
-        is_published: false,
-        api_id: name.toLowerCase().replace(/\s+/g, '_'),
-        api_id_plural: `${name.toLowerCase().replace(/\s+/g, '_')}s`,
-        is_collection: true
-      });
+        api_id: apiId,
+        api_id_plural: apiIdPlural,
+        is_collection: isCollection
+      };
       
-      toast.success('Content type created successfully!');
+      const contentTypeId = await createContentType(contentTypeData);
       
-      if (onClose) {
-        onClose();
+      toast.success(`${isComponent ? 'Component' : 'Content type'} created successfully!`);
+      onClose();
+      
+      // Redirect to the content type builder for the new content type
+      if (contentTypeId) {
+        window.location.href = `/content-types/builder/${contentTypeId}`;
       }
-      
-      navigate(`/content-types/${contentTypeId}`);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error creating content type:', error);
-      toast.error(`Failed to create content type: ${error.message}`);
+      toast.error('Failed to create content type');
     } finally {
       setIsSubmitting(false);
     }
   };
   
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Create Content Type</CardTitle>
-      </CardHeader>
-      <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-4">
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>
+            {isComponent ? 'Create New Component' : 'Create New Content Type'}
+          </DialogTitle>
+        </DialogHeader>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Name</Label>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Blog Post, Product, FAQ"
+              placeholder={isComponent ? "My Component" : "My Content Type"}
               required
             />
           </div>
@@ -80,29 +101,38 @@ export const ContentTypeForm: React.FC<ContentTypeFormProps> = ({ onClose }) => 
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe what this content type is for"
-              rows={3}
+              placeholder={
+                isComponent
+                  ? "Describe what this component is used for"
+                  : "Describe what this content type represents"
+              }
+              rows={4}
             />
           </div>
-        </CardContent>
-        
-        <CardFooter className="flex justify-end space-x-2">
-          {onClose && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
+          
+          {!isComponent && (
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="isCollection"
+                checked={isCollection}
+                onCheckedChange={setIsCollection}
+              />
+              <Label htmlFor="isCollection" className="font-normal">
+                Is this a collection?
+              </Label>
+            </div>
           )}
           
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Creating...' : 'Create Content Type'}
-          </Button>
-        </CardFooter>
-      </form>
-    </Card>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Creating...' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };
