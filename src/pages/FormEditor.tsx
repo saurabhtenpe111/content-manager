@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { ChevronLeft, Save, LayoutGrid, PlusCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { FieldRenderer } from '@/components/fields/FieldRenderer';
+import { supabase } from '@/integrations/supabase/client';
 
 const FormEditor: React.FC = () => {
   const { contentTypeId } = useParams<{ contentTypeId: string }>();
@@ -26,29 +27,43 @@ const FormEditor: React.FC = () => {
   const [formDescription, setFormDescription] = useState('');
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   
   const contentType = contentTypes.find(ct => ct.id === contentTypeId);
   
   useEffect(() => {
     // Fetch content types if needed
-    if (contentTypes.length === 0) {
-      fetchContentTypes().catch(err => {
-        console.error("Error fetching content types:", err);
+    const loadContentTypes = async () => {
+      console.log('FormEditor: Loading content types');
+      try {
+        await fetchContentTypes();
+        console.log('FormEditor: Content types loaded successfully');
+      } catch (err) {
+        console.error("FormEditor: Error fetching content types:", err);
         toast.error("Failed to load content types");
-      });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    if (contentTypes.length === 0) {
+      loadContentTypes();
     } else {
+      console.log('FormEditor: Content types already loaded');
       setIsLoading(false);
     }
   }, [contentTypes.length, fetchContentTypes]);
   
   useEffect(() => {
     if (!contentType && !isLoading && contentTypes.length > 0) {
+      console.log('FormEditor: Content type not found, redirecting');
       toast.error('Content type not found');
       navigate('/form-builder');
       return;
     }
     
     if (contentType) {
+      console.log('FormEditor: Initializing form with content type defaults:', contentType.name);
       // Initialize form with content type defaults
       setFormName(`${contentType.name} Form`);
       setFormDescription(`Form for creating ${contentType.name}`);
@@ -57,29 +72,62 @@ const FormEditor: React.FC = () => {
     }
   }, [contentType, navigate, contentTypes.length, isLoading]);
   
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!contentType) {
       toast.error('Content type not found');
       return;
     }
     
-    // Here you would save the form to your store or database
-    toast.success('Form created successfully!');
-    navigate('/form-builder');
+    setIsSaving(true);
+    
+    try {
+      console.log('FormEditor: Saving form with name:', formName);
+      
+      // Here you would save the form to your store or database
+      const formData = {
+        name: formName,
+        description: formDescription,
+        content_type_id: contentType.id,
+        fields: selectedFields,
+        created_at: new Date().toISOString()
+      };
+      
+      // Example of saving to Supabase
+      const { data, error } = await supabase
+        .from('forms')
+        .insert([formData])
+        .select()
+        .single();
+      
+      if (error) {
+        throw error;
+      }
+      
+      console.log('FormEditor: Form saved successfully:', data);
+      toast.success('Form created successfully!');
+      navigate('/form-builder');
+    } catch (error) {
+      console.error('FormEditor: Error saving form:', error);
+      toast.error('Failed to save form. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
   
   const handleAddField = () => {
     if (!contentType) return;
     
+    console.log('FormEditor: Navigating to content type builder to add fields');
     // Navigate to content type builder to add fields
-    navigate(`/content-types/${contentTypeId}`);
+    navigate(`/content-types/builder/${contentTypeId}`);
   };
   
   const handleEditField = (field: any) => {
     if (!contentType) return;
     
+    console.log('FormEditor: Setting active field for editing:', field.label);
     setActiveField(field);
-    navigate(`/content-types/${contentTypeId}`);
+    navigate(`/content-types/builder/${contentTypeId}`);
   };
   
   if (isLoading) {

@@ -15,29 +15,37 @@ export async function migrateAddUIOptions() {
       
       try {
         // Execute SQL directly since we can't use RPC
-        const { error } = await supabase
-          .rpc('add_column_if_not_exists', { 
-            table_name: 'fields',
-            column_name: 'ui_options',
-            column_type: 'JSONB'
-          });
+        const { error } = await supabase.rpc('add_column_if_not_exists', { 
+          table_name: 'fields',
+          column_name: 'ui_options',
+          column_type: 'JSONB'
+        });
         
         if (error) {
-          // If the RPC execution fails, provide a helpful message
-          console.log('Could not execute RPC directly, trying alternative approach...');
-          console.log('Migration functionality is not available - please add the ui_options column manually');
-          console.log('You can run this SQL in your Supabase SQL editor:');
-          console.log('ALTER TABLE fields ADD COLUMN IF NOT EXISTS ui_options JSONB');
-          return false;
+          console.error('Error adding column through RPC:', error);
+          
+          // Try alternate method - direct SQL
+          const { error: sqlError } = await supabase.rpc('execute_sql', {
+            sql: 'ALTER TABLE fields ADD COLUMN IF NOT EXISTS ui_options JSONB DEFAULT \'{}\''
+          });
+          
+          if (sqlError) {
+            console.error('Error with direct SQL execution:', sqlError);
+            console.log('Migration functionality is not available - please add the ui_options column manually');
+            console.log('You can run this SQL in your Supabase SQL editor:');
+            console.log('ALTER TABLE fields ADD COLUMN IF NOT EXISTS ui_options JSONB DEFAULT \'{}\'');
+            return false;
+          }
         }
         
         console.log('ui_options column added successfully');
         return true;
       } catch (rpcError) {
+        console.error('RPC error:', rpcError);
         // Provide helpful error message if migration fails
         console.log('Migration functionality is not available - please add the ui_options column manually');
         console.log('You can run this SQL in your Supabase SQL editor:');
-        console.log('ALTER TABLE fields ADD COLUMN IF NOT EXISTS ui_options JSONB');
+        console.log('ALTER TABLE fields ADD COLUMN IF NOT EXISTS ui_options JSONB DEFAULT \'{}\'');
         return false;
       }
     } else {

@@ -46,8 +46,8 @@ export const ContentTypeForm: React.FC<ContentTypeFormProps> = ({
     setIsSubmitting(true);
     
     try {
-      const apiId = name.toLowerCase().replace(/\s+/g, '_');
-      const apiIdPlural = `${apiId}s`;
+      const apiId = name.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+      const apiIdPlural = isCollection ? `${apiId}s` : apiId;
       
       const contentTypeData = {
         name,
@@ -57,7 +57,9 @@ export const ContentTypeForm: React.FC<ContentTypeFormProps> = ({
         is_collection: isCollection
       };
       
+      console.log('Creating content type with data:', contentTypeData);
       const contentTypeId = await createContentType(contentTypeData);
+      console.log('Content type created with ID:', contentTypeId);
       
       toast.success(`${isComponent ? 'Component' : 'Content type'} created successfully!`);
       onClose();

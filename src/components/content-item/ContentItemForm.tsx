@@ -47,24 +47,31 @@ export const ContentItemForm: React.FC<ContentItemFormProps> = ({
   
   const contentType = contentTypes.find((ct) => ct.id === contentTypeId);
   
+  // Ensure content types are loaded
   useEffect(() => {
+    console.log('ContentItemForm: Loading content types, current count:', contentTypes.length);
     if (contentTypes.length === 0) {
+      console.log('ContentItemForm: Fetching content types');
       fetchContentTypes().then(() => {
+        console.log('ContentItemForm: Content types fetched successfully');
         setLoading(false);
       }).catch(error => {
-        console.error('Error fetching content types:', error);
+        console.error('ContentItemForm: Error fetching content types:', error);
         toast.error('Failed to load content type data');
         setLoading(false);
       });
     } else {
+      console.log('ContentItemForm: Content types already loaded');
       setLoading(false);
     }
   }, [contentTypes, fetchContentTypes]);
   
+  // Fetch existing content item or initialize with defaults
   useEffect(() => {
     const fetchContentItem = async () => {
       if (contentItemId) {
         try {
+          console.log('ContentItemForm: Fetching content item', contentItemId);
           const { data, error } = await supabase
             .from('content_items')
             .select('*')
@@ -72,27 +79,34 @@ export const ContentItemForm: React.FC<ContentItemFormProps> = ({
             .eq('content_type_id', contentTypeId)
             .single();
           
-          if (error) throw error;
+          if (error) {
+            console.error('ContentItemForm: Error fetching content item:', error);
+            throw error;
+          }
           
+          console.log('ContentItemForm: Content item fetched successfully:', data);
           if (data) {
             const itemData = typeof data.data === 'string' 
               ? JSON.parse(data.data) 
               : data.data;
             
+            console.log('ContentItemForm: Parsed content item data:', itemData);
             setFormData(itemData);
           }
         } catch (error) {
-          console.error('Error fetching content item:', error);
+          console.error('ContentItemForm: Error fetching content item:', error);
           toast.error('Failed to load content item');
         }
       }
     };
     
     if (contentType) {
+      console.log('ContentItemForm: Initializing form data with defaults from content type fields');
       // Initialize form data with default values from the content type's fields
       const initialData: Record<string, any> = {};
       contentType.fields.forEach((field) => {
-        initialData[field.name] = field.defaultValue || '';
+        initialData[field.name] = field.defaultValue !== undefined ? field.defaultValue : '';
+        console.log(`ContentItemForm: Setting initial value for ${field.name}:`, initialData[field.name]);
       });
       setFormData(initialData);
       
@@ -103,6 +117,7 @@ export const ContentItemForm: React.FC<ContentItemFormProps> = ({
   }, [contentType, contentTypeId, contentItemId]);
   
   const handleFieldChange = (fieldName: string, value: any) => {
+    console.log(`ContentItemForm: Field ${fieldName} changed to:`, value);
     setFormData((prevData) => ({
       ...prevData,
       [fieldName]: value,
@@ -124,6 +139,7 @@ export const ContentItemForm: React.FC<ContentItemFormProps> = ({
       return false;
     }
     
+    console.log('ContentItemForm: Validating form with data:', formData);
     contentType.fields.forEach((field) => {
       const value = formData[field.name];
       const validation = field.validation;
@@ -153,6 +169,7 @@ export const ContentItemForm: React.FC<ContentItemFormProps> = ({
       }
     });
     
+    console.log('ContentItemForm: Validation errors:', newErrors);
     setErrors(newErrors);
     return isValid;
   }, [formData, contentType, setErrors]);
@@ -171,6 +188,7 @@ export const ContentItemForm: React.FC<ContentItemFormProps> = ({
     setIsSubmitting(true);
     
     try {
+      console.log('ContentItemForm: Submitting form with data:', formData);
       const item = {
         content_type_id: contentTypeId,
         data: formData,
@@ -179,6 +197,7 @@ export const ContentItemForm: React.FC<ContentItemFormProps> = ({
       
       if (contentItemId) {
         // Update existing item
+        console.log('ContentItemForm: Updating existing content item:', contentItemId);
         const { error } = await supabase
           .from('content_items')
           .update(item)
@@ -189,6 +208,7 @@ export const ContentItemForm: React.FC<ContentItemFormProps> = ({
         toast.success('Content item updated successfully!');
       } else {
         // Create new item
+        console.log('ContentItemForm: Creating new content item');
         const { error } = await supabase
           .from('content_items')
           .insert([item]);
@@ -205,7 +225,7 @@ export const ContentItemForm: React.FC<ContentItemFormProps> = ({
         navigate(`/content/${contentTypeId}`);
       }
     } catch (error) {
-      console.error('Error saving content item:', error);
+      console.error('ContentItemForm: Error saving content item:', error);
       toast.error('Failed to save content item');
     } finally {
       setIsSubmitting(false);
@@ -218,6 +238,7 @@ export const ContentItemForm: React.FC<ContentItemFormProps> = ({
     setIsSubmitting(true);
     
     try {
+      console.log('ContentItemForm: Deleting content item:', contentItemId);
       const { error } = await supabase
         .from('content_items')
         .delete()
@@ -233,7 +254,7 @@ export const ContentItemForm: React.FC<ContentItemFormProps> = ({
         navigate(`/content/${contentTypeId}`);
       }
     } catch (error) {
-      console.error('Error deleting content item:', error);
+      console.error('ContentItemForm: Error deleting content item:', error);
       toast.error('Failed to delete content item');
     } finally {
       setIsSubmitting(false);
