@@ -6,7 +6,7 @@ import { useCmsStore } from '@/stores/cmsStore';
 import { CMSLayout } from '@/components/layout/CMSLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { PlusCircle, FileText } from 'lucide-react';
+import { PlusCircle, FileText, Loader2 } from 'lucide-react';
 
 const FormBuilderRedirect: React.FC = () => {
   const navigate = useNavigate();
@@ -16,23 +16,25 @@ const FormBuilderRedirect: React.FC = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
+        console.log('Fetching content types in FormBuilderRedirect...');
         await fetchContentTypes();
+        console.log('Content types loaded in FormBuilderRedirect:', contentTypes);
       } catch (error) {
         console.error('Error loading content types:', error);
+        toast.error('Failed to load content types');
       } finally {
         setLoading(false);
       }
     };
     
     loadData();
-    toast.info('Welcome to the form builder');
   }, [fetchContentTypes]);
   
   if (loading) {
     return (
       <CMSLayout>
         <div className="flex justify-center items-center h-[50vh]">
-          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <span className="ml-2">Loading form builder...</span>
         </div>
       </CMSLayout>
@@ -46,9 +48,9 @@ const FormBuilderRedirect: React.FC = () => {
           <h1 className="text-3xl font-bold">Form Builder</h1>
           <div className="flex items-center gap-4">
             <Button 
-              className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 transition-colors"
               onClick={() => navigate('/content-types')}
             >
+              <PlusCircle className="h-4 w-4 mr-2" />
               Create New Form
             </Button>
           </div>
@@ -62,9 +64,9 @@ const FormBuilderRedirect: React.FC = () => {
                 Create your first form to get started with collecting data from your users.
               </p>
               <Button 
-                className="bg-primary text-white px-6 py-3 rounded-md hover:bg-primary/90 transition-colors"
                 onClick={() => navigate('/content-types')}
               >
+                <PlusCircle className="h-4 w-4 mr-2" />
                 Create Your First Form
               </Button>
             </div>

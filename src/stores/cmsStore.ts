@@ -1,8 +1,7 @@
-
 import { create } from 'zustand';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { DateRange } from 'react-day-picker';
+import { ContentType as ContentTypeType } from '@/integrations/supabase/contentTypes';
+import { Json } from '@/integrations/supabase/types';
 
 export type FieldType = 
   | 'text' 
@@ -10,23 +9,15 @@ export type FieldType =
   | 'number' 
   | 'email' 
   | 'password' 
+  | 'date' 
+  | 'dropdown' 
   | 'checkbox' 
   | 'radio' 
-  | 'dropdown' 
-  | 'date' 
-  | 'time' 
-  | 'datetime' 
   | 'file' 
-  | 'image' 
-  | 'component' 
-  | 'group' 
-  | 'rich-text' 
-  | 'url' 
   | 'color' 
-  | 'rating' 
-  | 'switch' 
-  | 'slider'
+  | 'slider' 
   | 'toggle'
+  | 'component'
   | 'calendar'
   | 'inputgroup'
   | 'inputmask'
@@ -39,48 +30,27 @@ export type FieldType =
   | 'multistatecheckbox';
 
 export interface UiOptions {
-  displayMode?: string;
-  labelPosition?: string;
-  placeholder?: string;
-  helpText?: string;
-  defaultValue?: any;
-  minLength?: number;
-  maxLength?: number;
-  min?: number;
-  max?: number;
-  step?: number;
-  rows?: number;
-  cols?: number;
-  format?: string;
-  accept?: string;
-  multiple?: boolean;
-  disabled?: boolean;
-  readOnly?: boolean;
-  required?: boolean;
-  pattern?: string;
-  autocomplete?: string;
-  className?: string;
-  style?: Record<string, string>;
   floatingLabel?: boolean;
   filled?: boolean;
   showIcon?: boolean;
   inline?: boolean;
-  multipleMonths?: number;
+  multipleMonths?: boolean;
   showButtons?: boolean;
   showTime?: boolean;
-  range?: boolean;
-  dateFormat?: string;
-  monthsOnly?: boolean;
-  yearsOnly?: boolean;
   autoResize?: boolean;
+  showHeader?: boolean;
   checkboxSelection?: boolean;
   filterable?: boolean;
   showClear?: boolean;
+  range?: boolean;
   count?: number;
   allowCancel?: boolean;
   triggers?: string[];
+  dateFormat?: string;
+  monthsOnly?: boolean;
   optional?: boolean;
   slotChar?: string;
+  [key: string]: any;
 }
 
 export interface Field {
@@ -98,10 +68,10 @@ export interface Field {
     pattern?: string;
     message?: string;
   };
-  options?: { label: string; value: string; disabled?: boolean }[];
+  options?: { label: string; value: string }[];
   subfields?: Field[];
-  uiOptions?: UiOptions;
   isHidden?: boolean;
+  uiOptions?: UiOptions;
   _parentFieldId?: string;
   _subfieldIndex?: number;
 }
@@ -110,424 +80,457 @@ export interface ContentType {
   id: string;
   name: string;
   description: string;
+  is_published: boolean;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
+  api_id: string;
+  api_id_plural: string;
+  is_collection: boolean;
   fields: Field[];
-  createdAt: string;
-  updatedAt: string;
-  apiId?: string;
-  apiIdPlural?: string;
-  isCollection?: boolean;
 }
 
 interface CmsStore {
   contentTypes: ContentType[];
-  activeContentType: string | null;
   activeField: Field | null;
+  activeContentTypeId: string | null;
   isDragging: boolean;
-  fieldLibrary: Field[];
-  activeContentTypeId?: string;
-  fetchContentTypes: () => Promise<void>;
-  addContentType: (contentType: Omit<ContentType, 'id' | 'fields' | 'createdAt' | 'updatedAt'>) => Promise<void>;
-  updateContentType: (id: string, contentType: Partial<Omit<ContentType, 'id' | 'fields'>>) => Promise<void>;
-  deleteContentType: (id: string) => Promise<void>;
-  addField: (contentTypeId: string, field: Omit<Field, 'id'>) => Promise<void>;
-  updateField: (contentTypeId: string, fieldId: string, field: Partial<Field>) => Promise<void>;
-  deleteField: (contentTypeId: string, fieldId: string) => Promise<void>;
-  reorderFields: (contentTypeId: string, fieldIds: string[]) => Promise<void>;
-  setActiveContentType: (contentTypeId: string | null) => void;
-  setActiveField: (field: Field | null) => void;
   setIsDragging: (isDragging: boolean) => void;
-  fetchFieldLibrary: () => Promise<void>;
-  addFieldToLibrary: (field: Omit<Field, 'id'>) => Promise<void>;
-  updateFieldInLibrary: (fieldId: string, field: Partial<Field>) => Promise<void>;
-  deleteFieldFromLibrary: (fieldId: string) => Promise<void>;
-}
-
-// Utility function to safely parse JSON or return a default value
-function safeParseJson(json: any, defaultValue: any = null) {
-  if (!json) return defaultValue;
-  
-  try {
-    if (typeof json === 'object') return json;
-    return JSON.parse(json);
-  } catch (error) {
-    console.error('Error parsing JSON:', error);
-    return defaultValue;
-  }
+  setActiveField: (field: Field | null) => void;
+  setActiveContentType: (contentTypeId: string | null) => void;
+  fetchContentTypes: () => Promise<void>;
+  createContentType: (contentType: Omit<ContentType, 'id' | 'fields'>) => Promise<string>;
+  updateContentType: (contentTypeId: string, updates: Partial<ContentType>) => void;
+  deleteContentType: (contentTypeId: string) => void;
+  addField: (contentTypeId: string, field: Omit<Field, 'id'>) => Promise<string>;
+  updateField: (contentTypeId: string, fieldId: string, updates: Partial<Field>) => void;
+  deleteField: (contentTypeId: string, fieldId: string) => void;
+  reorderFields: (contentTypeId: string, newOrder: string[]) => void;
+  getFieldById: (contentTypeId: string, fieldId: string) => Field | undefined;
 }
 
 export const useCmsStore = create<CmsStore>((set, get) => ({
   contentTypes: [],
-  activeContentType: null,
   activeField: null,
+  activeContentTypeId: null,
   isDragging: false,
-  fieldLibrary: [],
-  activeContentTypeId: undefined,
-
+  
+  setIsDragging: (isDragging) => set({ isDragging }),
+  
+  setActiveField: (field) => set({ activeField: field }),
+  
+  setActiveContentType: (contentTypeId) => set({ activeContentTypeId: contentTypeId }),
+  
   fetchContentTypes: async () => {
     try {
-      console.log('Fetching content types from Supabase...');
-      
-      const { data: contentTypesData, error: contentTypesError } = await supabase
+      console.log('Fetching content types...');
+      const { data: contentTypeData, error: contentTypeError } = await supabase
         .from('content_types')
         .select('*')
         .order('created_at', { ascending: false });
       
-      if (contentTypesError) {
-        if (contentTypesError.code === '42P01') {
-          console.error('Table does not exist. Check your database setup.');
-          return;
-        }
-        throw contentTypesError;
-      }
+      if (contentTypeError) throw contentTypeError;
       
-      if (!contentTypesData || contentTypesData.length === 0) {
-        console.log('No content types found');
-        set({ contentTypes: [] });
-        return;
-      }
+      const contentTypes: ContentType[] = [];
       
-      console.log('Fetched content types:', contentTypesData);
-      
-      const contentTypesWithFields = await Promise.all(
-        contentTypesData.map(async (contentType) => {
-          const { data: fieldsData, error: fieldsError } = await supabase
+      for (const contentType of contentTypeData || []) {
+        try {
+          console.log(`Fetching fields for content type: ${contentType.id}`);
+          const { data: fieldData, error: fieldError } = await supabase
             .from('fields')
             .select('*')
             .eq('content_type_id', contentType.id)
             .order('position', { ascending: true });
           
-          if (fieldsError) {
-            if (fieldsError.code === '42P01') {
-              console.error('Fields table does not exist. Check your database setup.');
-              return {
-                id: contentType.id,
-                name: contentType.name,
-                description: contentType.description || '',
-                fields: [],
-                createdAt: contentType.created_at,
-                updatedAt: contentType.updated_at,
-                apiId: contentType.api_id,
-                apiIdPlural: contentType.api_id_plural,
-                isCollection: contentType.is_collection,
-              };
-            }
-            throw fieldsError;
-          }
+          if (fieldError) throw fieldError;
           
-          const fields: Field[] = (fieldsData || []).map((field) => {
-            const validationObj = safeParseJson(field.validation, { required: false });
-            const optionsObj = safeParseJson(field.options, []);
-            const uiOptionsObj = safeParseJson(field.ui_options, {});
+          // Process fields to have proper structure
+          const fields: Field[] = (fieldData || []).map(field => {
+            // Convert from database representation to app representation
+            const validation = typeof field.validation === 'object' 
+              ? field.validation as any 
+              : { required: false };
+            
+            const options = typeof field.options === 'object' 
+              ? field.options as any
+              : [];
+            
+            const uiOptions = field.ui_options && typeof field.ui_options === 'object'
+              ? field.ui_options as UiOptions
+              : {};
+            
+            const defaultValue = typeof field.default_value === 'object'
+              ? field.default_value
+              : field.default_value;
             
             return {
               id: field.id,
               name: field.name,
               label: field.label,
               type: field.type as FieldType,
-              description: field.description || undefined,
-              placeholder: field.placeholder || undefined,
-              defaultValue: field.default_value || undefined,
-              validation: validationObj,
-              options: optionsObj,
-              uiOptions: uiOptionsObj,
-              isHidden: field.is_hidden || false,
+              description: field.description,
+              placeholder: field.placeholder,
+              defaultValue,
+              validation,
+              options,
+              uiOptions,
+              isHidden: field.is_hidden,
             };
           });
           
-          return {
+          contentTypes.push({
             id: contentType.id,
             name: contentType.name,
             description: contentType.description || '',
+            is_published: contentType.is_published,
+            created_at: contentType.created_at,
+            updated_at: contentType.updated_at,
+            user_id: contentType.user_id,
+            api_id: contentType.api_id || '',
+            api_id_plural: contentType.api_id_plural || '',
+            is_collection: contentType.is_collection || false,
             fields,
-            createdAt: contentType.created_at,
-            updatedAt: contentType.updated_at,
-            apiId: contentType.api_id,
-            apiIdPlural: contentType.api_id_plural,
-            isCollection: contentType.is_collection,
-          };
-        })
-      );
+          });
+          
+        } catch (fieldErr) {
+          console.error(`Error fetching fields for content type ${contentType.id}:`, fieldErr);
+        }
+      }
       
-      console.log('Content types with fields:', contentTypesWithFields);
-      set({ contentTypes: contentTypesWithFields });
-    } catch (error: any) {
+      set({ contentTypes });
+      console.log('Fetched and processed content types:', contentTypes);
+      
+    } catch (error) {
       console.error('Error fetching content types:', error);
-      toast.error(`Failed to load content types: ${error.message}`);
+      throw error;
     }
   },
-
-  addContentType: async (contentType) => {
+  
+  createContentType: async (contentType) => {
     try {
       const { data, error } = await supabase
         .from('content_types')
-        .insert({
+        .insert([{
           name: contentType.name,
           description: contentType.description || '',
-          user_id: (await supabase.auth.getUser()).data.user?.id || 'system',
-          api_id: contentType.apiId,
-          api_id_plural: contentType.apiIdPlural,
-          is_collection: contentType.isCollection !== false,
-        })
+          is_published: false,
+          api_id: contentType.api_id || contentType.name.toLowerCase().replace(/\s+/g, '_'),
+          api_id_plural: contentType.api_id_plural || `${contentType.name.toLowerCase().replace(/\s+/g, '_')}s`,
+          is_collection: contentType.is_collection || true,
+        }])
         .select()
         .single();
       
-      if (error) {
-        if (error.code === '42P01') {
-          // Table doesn't exist yet - create a local content type
-          const newContentType: ContentType = {
-            id: `local-${Date.now()}`,
-            name: contentType.name,
-            description: contentType.description || '',
-            fields: [],
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            apiId: contentType.apiId,
-            apiIdPlural: contentType.apiIdPlural,
-            isCollection: contentType.isCollection,
-          };
-          
-          set((state) => ({
-            contentTypes: [...state.contentTypes, newContentType],
-            activeContentType: newContentType.id,
-          }));
-          
-          return;
-        }
-        throw error;
-      }
+      if (error) throw error;
       
       if (data) {
-        const newContentType: ContentType = {
-          id: data.id,
-          name: data.name,
-          description: data.description || '',
-          fields: [],
-          createdAt: data.created_at,
-          updatedAt: data.updated_at,
-          apiId: data.api_id,
-          apiIdPlural: data.api_id_plural,
-          isCollection: data.is_collection,
-        };
-        
         set((state) => ({
-          contentTypes: [...state.contentTypes, newContentType],
-          activeContentType: data.id,
+          contentTypes: [
+            {
+              ...data,
+              fields: [],
+            },
+            ...state.contentTypes,
+          ],
         }));
+        
+        return data.id;
       }
-    } catch (error: any) {
-      console.error('Error adding content type:', error);
-      toast.error(`Failed to add content type: ${error.message}`);
+      
+      throw new Error('Failed to create content type');
+    } catch (error) {
+      console.error('Error creating content type:', error);
+      throw error;
     }
   },
-
-  updateContentType: async (id, contentType) => {
+  
+  updateContentType: async (contentTypeId, updates) => {
     try {
+      const existingState = get();
+      const contentTypeIndex = existingState.contentTypes.findIndex(
+        (ct) => ct.id === contentTypeId
+      );
+      
+      if (contentTypeIndex === -1) {
+        console.error(`Content type with ID ${contentTypeId} not found`);
+        return;
+      }
+      
       const { error } = await supabase
         .from('content_types')
         .update({
-          name: contentType.name,
-          description: contentType.description || '',
-          api_id: contentType.apiId,
-          api_id_plural: contentType.apiIdPlural,
-          is_collection: contentType.isCollection,
+          name: updates.name,
+          description: updates.description,
+          updated_at: new Date().toISOString(),
+          api_id: updates.api_id,
+          api_id_plural: updates.api_id_plural,
+          is_collection: updates.is_collection,
         })
-        .eq('id', id);
+        .eq('id', contentTypeId);
       
-      if (error && error.code !== '42P01') throw error;
+      if (error) throw error;
       
-      set((state) => ({
-        contentTypes: state.contentTypes.map((ct) =>
-          ct.id === id
-            ? {
-                ...ct,
-                ...contentType,
-                updatedAt: new Date().toISOString(),
-              }
-            : ct
-        ),
-      }));
-    } catch (error: any) {
+      set((state) => {
+        const newContentTypes = [...state.contentTypes];
+        newContentTypes[contentTypeIndex] = {
+          ...newContentTypes[contentTypeIndex],
+          ...updates,
+        };
+        return { contentTypes: newContentTypes };
+      });
+      
+    } catch (error) {
       console.error('Error updating content type:', error);
-      toast.error(`Failed to update content type: ${error.message}`);
     }
   },
-
-  deleteContentType: async (id) => {
+  
+  deleteContentType: async (contentTypeId) => {
     try {
       const { error } = await supabase
         .from('content_types')
         .delete()
-        .eq('id', id);
+        .eq('id', contentTypeId);
       
-      if (error && error.code !== '42P01') throw error;
+      if (error) throw error;
       
       set((state) => ({
-        contentTypes: state.contentTypes.filter((ct) => ct.id !== id),
-        activeContentType: state.activeContentType === id ? null : state.activeContentType,
+        contentTypes: state.contentTypes.filter((ct) => ct.id !== contentTypeId),
       }));
-    } catch (error: any) {
+      
+    } catch (error) {
       console.error('Error deleting content type:', error);
-      toast.error(`Failed to delete content type: ${error.message}`);
     }
   },
-
+  
   addField: async (contentTypeId, field) => {
     try {
-      const contentType = get().contentTypes.find((ct) => ct.id === contentTypeId);
-      if (!contentType) throw new Error('Content type not found');
+      const contentTypeIndex = get().contentTypes.findIndex(
+        (ct) => ct.id === contentTypeId
+      );
       
-      const position = contentType.fields.length;
+      if (contentTypeIndex === -1) {
+        throw new Error(`Content type with ID ${contentTypeId} not found`);
+      }
       
-      // Prepare field data for insertion
-      const fieldData = {
+      const position = get().contentTypes[contentTypeIndex].fields.length;
+      
+      // Prepare field data for database
+      const dbField = {
         content_type_id: contentTypeId,
         name: field.name,
         label: field.label,
         type: field.type,
-        description: field.description || null,
-        placeholder: field.placeholder || null,
+        description: field.description || '',
+        placeholder: field.placeholder || '',
         default_value: field.defaultValue || null,
         validation: field.validation || { required: false },
-        options: field.options || null,
-        ui_options: field.uiOptions || null,
-        position,
+        options: field.options || [],
         is_hidden: field.isHidden || false,
+        position,
+        ui_options: field.uiOptions || {}
       };
+      
+      console.log('Adding field to database:', dbField);
       
       const { data, error } = await supabase
         .from('fields')
-        .insert(fieldData)
+        .insert([dbField])
         .select()
         .single();
       
       if (error) {
-        if (error.code === '42P01' || error.code === '42703') {
-          // Table doesn't exist or missing column - create a local field
-          const newField: Field = {
-            id: `local-${Date.now()}`,
-            name: field.name,
-            label: field.label,
-            type: field.type,
-            description: field.description,
-            placeholder: field.placeholder,
-            defaultValue: field.defaultValue,
-            validation: field.validation,
-            options: field.options,
-            uiOptions: field.uiOptions,
-            isHidden: field.isHidden,
-            subfields: field.subfields || [],
-          };
-          
-          set((state) => ({
-            contentTypes: state.contentTypes.map((ct) =>
-              ct.id === contentTypeId
-                ? {
-                    ...ct,
-                    fields: [...ct.fields, newField],
-                    updatedAt: new Date().toISOString(),
-                  }
-                : ct
-            ),
-          }));
-          
-          return;
-        }
+        console.error('Error inserting field into database:', error);
         throw error;
       }
       
-      if (data) {
-        const newField: Field = {
-          id: data.id,
-          name: data.name,
-          label: data.label,
-          type: data.type as FieldType,
-          description: data.description || undefined,
-          placeholder: data.placeholder || undefined,
-          defaultValue: data.default_value || undefined,
-          validation: safeParseJson(data.validation, { required: false }),
-          options: safeParseJson(data.options, []),
-          uiOptions: safeParseJson(data.ui_options, {}),
-          isHidden: data.is_hidden || false,
-          subfields: field.subfields || [],
-        };
-        
-        set((state) => ({
-          contentTypes: state.contentTypes.map((ct) =>
-            ct.id === contentTypeId
-              ? {
-                  ...ct,
-                  fields: [...ct.fields, newField],
-                  updatedAt: new Date().toISOString(),
-                }
-              : ct
-          ),
-        }));
+      if (!data) {
+        throw new Error('No data returned from field insertion');
       }
-    } catch (error: any) {
-      console.error('Error adding field:', error);
-      toast.error(`Failed to add field: ${error.message}`);
-    }
-  },
-
-  updateField: async (contentTypeId, fieldId, field) => {
-    try {
-      // Find the current field to merge with updates
-      const currentField = get().contentTypes
-        .find(ct => ct.id === contentTypeId)?.fields
-        .find(f => f.id === fieldId);
       
-      if (!currentField) throw new Error('Field not found');
+      console.log('Field added to database:', data);
       
-      const updatedField = {
-        ...currentField,
-        ...field
+      // Convert from database representation to app representation
+      const newField: Field = {
+        id: data.id,
+        name: data.name,
+        label: data.label,
+        type: data.type as FieldType,
+        description: data.description,
+        placeholder: data.placeholder,
+        defaultValue: data.default_value,
+        validation: typeof data.validation === 'object' ? data.validation as any : { required: false },
+        options: typeof data.options === 'object' ? data.options as any : [],
+        isHidden: data.is_hidden,
+        uiOptions: data.ui_options && typeof data.ui_options === 'object' ? data.ui_options as UiOptions : {},
+        subfields: field.subfields || []
       };
       
-      const fieldToUpdate: any = {
+      // Update state with the new field
+      set((state) => {
+        const newContentTypes = [...state.contentTypes];
+        newContentTypes[contentTypeIndex].fields.push(newField);
+        return { contentTypes: newContentTypes };
+      });
+      
+      return data.id;
+    } catch (error) {
+      console.error('Error adding field:', error);
+      throw error;
+    }
+  },
+  
+  updateField: async (contentTypeId, fieldId, updates) => {
+    try {
+      // Special handling for subfields
+      if (updates._parentFieldId && updates._subfieldIndex !== undefined) {
+        return get().updateSubfield(
+          contentTypeId,
+          updates._parentFieldId,
+          updates._subfieldIndex,
+          updates
+        );
+      }
+      
+      const contentTypeIndex = get().contentTypes.findIndex(
+        (ct) => ct.id === contentTypeId
+      );
+      
+      if (contentTypeIndex === -1) {
+        console.error(`Content type with ID ${contentTypeId} not found`);
+        return;
+      }
+      
+      const fieldIndex = get().contentTypes[contentTypeIndex].fields.findIndex(
+        (f) => f.id === fieldId
+      );
+      
+      if (fieldIndex === -1) {
+        console.error(`Field with ID ${fieldId} not found`);
+        return;
+      }
+      
+      // Clone the current field
+      const currentField = {
+        ...get().contentTypes[contentTypeIndex].fields[fieldIndex]
+      };
+      
+      // Merge updates with current field
+      const updatedField = {
+        ...currentField,
+        ...updates,
+      };
+      
+      // Convert to database format
+      const dbUpdates = {
         name: updatedField.name,
         label: updatedField.label,
         type: updatedField.type,
-        description: updatedField.description,
-        placeholder: updatedField.placeholder,
+        description: updatedField.description || '',
+        placeholder: updatedField.placeholder || '',
         default_value: updatedField.defaultValue,
-        validation: updatedField.validation,
-        options: updatedField.options,
-        ui_options: updatedField.uiOptions,
-        is_hidden: updatedField.isHidden,
+        validation: updatedField.validation || { required: false },
+        options: updatedField.options || [],
+        is_hidden: updatedField.isHidden || false,
+        ui_options: updatedField.uiOptions || {}
       };
+      
+      console.log('Updating field in database:', dbUpdates);
       
       const { error } = await supabase
         .from('fields')
-        .update(fieldToUpdate)
+        .update(dbUpdates)
         .eq('id', fieldId)
         .eq('content_type_id', contentTypeId);
       
-      if (error && error.code !== '42P01' && error.code !== '42703') throw error;
+      if (error) {
+        console.error('Error updating field in database:', error);
+        throw error;
+      }
       
-      set((state) => ({
-        contentTypes: state.contentTypes.map((ct) =>
-          ct.id === contentTypeId
-            ? {
-                ...ct,
-                fields: ct.fields.map((f) =>
-                  f.id === fieldId
-                    ? {
-                        ...f,
-                        ...field,
-                      }
-                    : f
-                ),
-                updatedAt: new Date().toISOString(),
-              }
-            : ct
-        ),
-      }));
-    } catch (error: any) {
+      // Update in state
+      set((state) => {
+        const newContentTypes = [...state.contentTypes];
+        newContentTypes[contentTypeIndex].fields[fieldIndex] = updatedField;
+        return { contentTypes: newContentTypes };
+      });
+      
+    } catch (error) {
       console.error('Error updating field:', error);
-      toast.error(`Failed to update field: ${error.message}`);
     }
   },
-
+  
+  updateSubfield: async (contentTypeId, parentFieldId, subfieldIndex, updates) => {
+    try {
+      const contentTypeIndex = get().contentTypes.findIndex(
+        (ct) => ct.id === contentTypeId
+      );
+      
+      if (contentTypeIndex === -1) {
+        console.error(`Content type with ID ${contentTypeId} not found`);
+        return;
+      }
+      
+      const parentFieldIndex = get().contentTypes[contentTypeIndex].fields.findIndex(
+        (f) => f.id === parentFieldId
+      );
+      
+      if (parentFieldIndex === -1) {
+        console.error(`Parent field with ID ${parentFieldId} not found`);
+        return;
+      }
+      
+      const parentField = get().contentTypes[contentTypeIndex].fields[parentFieldIndex];
+      
+      if (!parentField.subfields || !parentField.subfields[subfieldIndex]) {
+        console.error(`Subfield at index ${subfieldIndex} not found`);
+        return;
+      }
+      
+      // Update the subfield in the parent field
+      const updatedSubfields = [...(parentField.subfields || [])];
+      updatedSubfields[subfieldIndex] = {
+        ...updatedSubfields[subfieldIndex],
+        ...updates,
+      };
+      
+      // Update parent field with new subfields
+      const updatedParentField = {
+        ...parentField,
+        subfields: updatedSubfields,
+      };
+      
+      // Convert to database format
+      const dbUpdates = {
+        subfields: updatedParentField.subfields || []
+      };
+      
+      console.log('Updating parent field with new subfields:', dbUpdates);
+      
+      const { error } = await supabase
+        .from('fields')
+        .update({
+          options: dbUpdates.subfields // Store subfields in options for now
+        })
+        .eq('id', parentFieldId)
+        .eq('content_type_id', contentTypeId);
+      
+      if (error) {
+        console.error('Error updating parent field in database:', error);
+        throw error;
+      }
+      
+      // Update in state
+      set((state) => {
+        const newContentTypes = [...state.contentTypes];
+        newContentTypes[contentTypeIndex].fields[parentFieldIndex] = updatedParentField;
+        return { contentTypes: newContentTypes };
+      });
+      
+    } catch (error) {
+      console.error('Error updating subfield:', error);
+    }
+  },
+  
   deleteField: async (contentTypeId, fieldId) => {
     try {
       const { error } = await supabase
@@ -536,282 +539,85 @@ export const useCmsStore = create<CmsStore>((set, get) => ({
         .eq('id', fieldId)
         .eq('content_type_id', contentTypeId);
       
-      if (error && error.code !== '42P01') throw error;
+      if (error) throw error;
       
-      set((state) => ({
-        contentTypes: state.contentTypes.map((ct) =>
-          ct.id === contentTypeId
-            ? {
-                ...ct,
-                fields: ct.fields.filter((f) => f.id !== fieldId),
-                updatedAt: new Date().toISOString(),
-              }
-            : ct
-        ),
-        activeField: state.activeField?.id === fieldId ? null : state.activeField,
-      }));
-    } catch (error: any) {
+      set((state) => {
+        const contentTypeIndex = state.contentTypes.findIndex(
+          (ct) => ct.id === contentTypeId
+        );
+        
+        if (contentTypeIndex === -1) return state;
+        
+        const newContentTypes = [...state.contentTypes];
+        newContentTypes[contentTypeIndex] = {
+          ...newContentTypes[contentTypeIndex],
+          fields: newContentTypes[contentTypeIndex].fields.filter(
+            (f) => f.id !== fieldId
+          ),
+        };
+        
+        return { contentTypes: newContentTypes };
+      });
+      
+    } catch (error) {
       console.error('Error deleting field:', error);
-      toast.error(`Failed to delete field: ${error.message}`);
     }
   },
-
-  reorderFields: async (contentTypeId, fieldIds) => {
+  
+  reorderFields: async (contentTypeId, newOrder) => {
     try {
-      const contentType = get().contentTypes.find((ct) => ct.id === contentTypeId);
-      if (!contentType) throw new Error('Content type not found');
-      
-      const updatePromises = fieldIds.map((id, index) =>
-        supabase
-          .from('fields')
-          .update({ position: index })
-          .eq('id', id)
-          .eq('content_type_id', contentTypeId)
+      const contentTypeIndex = get().contentTypes.findIndex(
+        (ct) => ct.id === contentTypeId
       );
       
-      try {
-        await Promise.all(updatePromises);
-      } catch (error: any) {
-        if (error.code !== '42P01') throw error;
+      if (contentTypeIndex === -1) {
+        console.error(`Content type with ID ${contentTypeId} not found`);
+        return;
       }
       
-      set((state) => ({
-        contentTypes: state.contentTypes.map((ct) =>
-          ct.id === contentTypeId
-            ? {
-                ...ct,
-                fields: fieldIds
-                  .map((id) => ct.fields.find((f) => f.id === id))
-                  .filter(Boolean) as Field[],
-                updatedAt: new Date().toISOString(),
-              }
-            : ct
-        ),
+      const currentFields = get().contentTypes[contentTypeIndex].fields;
+      const reorderedFields = newOrder.map(
+        (id) => currentFields.find((f) => f.id === id)
+      ).filter((f): f is Field => !!f);
+      
+      // Update position values in database
+      const updates = reorderedFields.map((field, index) => ({
+        id: field.id,
+        position: index,
       }));
-    } catch (error: any) {
-      console.error('Error reordering fields:', error);
-      toast.error(`Failed to reorder fields: ${error.message}`);
-    }
-  },
-
-  setActiveContentType: (contentTypeId) => {
-    set({ 
-      activeContentType: contentTypeId,
-      activeContentTypeId: contentTypeId || undefined
-    });
-  },
-
-  setActiveField: (field) => {
-    set({ activeField: field });
-  },
-
-  setIsDragging: (isDragging) => {
-    set({ isDragging });
-  },
-
-  fetchFieldLibrary: async () => {
-    try {
-      const { data, error } = await supabase
-        .from('field_types')
-        .select('*')
-        .order('name', { ascending: true });
       
-      if (error && error.code !== '42P01') throw error;
-      
-      if (data && data.length > 0) {
-        const fieldLibrary: Field[] = data.map((field) => {
-          const properties = field.properties || {};
-          return {
-            id: field.id,
-            name: field.name,
-            label: field.name,
-            type: field.type as FieldType,
-            description: field.description || undefined,
-            options: properties.options || undefined,
-            validation: properties.validation || undefined,
-            defaultValue: properties.defaultValue || undefined,
-          };
-        });
+      for (const update of updates) {
+        const { error } = await supabase
+          .from('fields')
+          .update({ position: update.position })
+          .eq('id', update.id)
+          .eq('content_type_id', contentTypeId);
         
-        set({ fieldLibrary });
-      } else {
-        // If no field library exists or we can't fetch it, create a default one
-        const defaultFields: Field[] = [
-          {
-            id: 'text-field',
-            name: 'text',
-            label: 'Text',
-            type: 'text',
-            description: 'Simple text input field'
-          },
-          {
-            id: 'textarea-field',
-            name: 'textarea',
-            label: 'Text Area',
-            type: 'textarea',
-            description: 'Multi-line text input'
-          },
-          {
-            id: 'number-field',
-            name: 'number',
-            label: 'Number',
-            type: 'number',
-            description: 'Numeric input field'
-          },
-          {
-            id: 'email-field',
-            name: 'email',
-            label: 'Email',
-            type: 'email',
-            description: 'Email input field'
-          },
-          {
-            id: 'dropdown-field',
-            name: 'dropdown',
-            label: 'Dropdown',
-            type: 'dropdown',
-            description: 'Select from a list of options',
-            options: [
-              { label: 'Option 1', value: 'option1' },
-              { label: 'Option 2', value: 'option2' },
-              { label: 'Option 3', value: 'option3' }
-            ]
-          }
-        ];
-        
-        set({ fieldLibrary: defaultFields });
-      }
-    } catch (error: any) {
-      console.error('Error fetching field library:', error);
-      toast.error(`Failed to load field library: ${error.message}`);
-      
-      // Set default field library if there's an error
-      const defaultFields: Field[] = [
-        {
-          id: 'text-field',
-          name: 'text',
-          label: 'Text',
-          type: 'text',
-          description: 'Simple text input field'
-        },
-        {
-          id: 'textarea-field',
-          name: 'textarea',
-          label: 'Text Area',
-          type: 'textarea',
-          description: 'Multi-line text input'
-        },
-        {
-          id: 'number-field',
-          name: 'number',
-          label: 'Number',
-          type: 'number',
-          description: 'Numeric input field'
-        },
-        {
-          id: 'email-field',
-          name: 'email',
-          label: 'Email',
-          type: 'email',
-          description: 'Email input field'
+        if (error) {
+          console.error(`Error updating position for field ${update.id}:`, error);
         }
-      ];
+      }
       
-      set({ fieldLibrary: defaultFields });
+      // Update in state
+      set((state) => {
+        const newContentTypes = [...state.contentTypes];
+        newContentTypes[contentTypeIndex] = {
+          ...newContentTypes[contentTypeIndex],
+          fields: reorderedFields,
+        };
+        return { contentTypes: newContentTypes };
+      });
+      
+    } catch (error) {
+      console.error('Error reordering fields:', error);
     }
   },
-
-  addFieldToLibrary: async (field) => {
-    try {
-      const { data, error } = await supabase
-        .from('field_types')
-        .insert({
-          name: field.name,
-          type: field.type,
-          description: field.description || null,
-          properties: {
-            options: field.options || null,
-            validation: field.validation || null,
-            defaultValue: field.defaultValue || null,
-          },
-        })
-        .select()
-        .single();
-      
-      if (error && error.code !== '42P01') throw error;
-      
-      // Create a new field in local state regardless of DB success
-      const newField: Field = {
-        id: data?.id || `local-${Date.now()}`,
-        name: field.name,
-        label: field.name,
-        type: field.type,
-        description: field.description,
-        options: field.options,
-        validation: field.validation,
-        defaultValue: field.defaultValue,
-      };
-      
-      set((state) => ({
-        fieldLibrary: [...state.fieldLibrary, newField],
-      }));
-    } catch (error: any) {
-      console.error('Error adding field to library:', error);
-      toast.error(`Failed to add field to library: ${error.message}`);
-    }
-  },
-
-  updateFieldInLibrary: async (fieldId, field) => {
-    try {
-      const fieldToUpdate = {
-        name: field.name,
-        type: field.type,
-        description: field.description,
-        properties: {
-          options: field.options,
-          validation: field.validation,
-          defaultValue: field.defaultValue,
-        },
-      };
-      
-      const { error } = await supabase
-        .from('field_types')
-        .update(fieldToUpdate)
-        .eq('id', fieldId);
-      
-      if (error && error.code !== '42P01') throw error;
-      
-      set((state) => ({
-        fieldLibrary: state.fieldLibrary.map((f) =>
-          f.id === fieldId
-            ? {
-                ...f,
-                ...field,
-              }
-            : f
-        ),
-      }));
-    } catch (error: any) {
-      console.error('Error updating field in library:', error);
-      toast.error(`Failed to update field in library: ${error.message}`);
-    }
-  },
-
-  deleteFieldFromLibrary: async (fieldId) => {
-    try {
-      const { error } = await supabase
-        .from('field_types')
-        .delete()
-        .eq('id', fieldId);
-      
-      if (error && error.code !== '42P01') throw error;
-      
-      set((state) => ({
-        fieldLibrary: state.fieldLibrary.filter((f) => f.id !== fieldId),
-      }));
-    } catch (error: any) {
-      console.error('Error deleting field from library:', error);
-      toast.error(`Failed to delete field from library: ${error.message}`);
-    }
+  
+  getFieldById: (contentTypeId, fieldId) => {
+    const contentType = get().contentTypes.find((ct) => ct.id === contentTypeId);
+    if (!contentType) return undefined;
+    
+    const field = contentType.fields.find((f) => f.id === fieldId);
+    return field;
   },
 }));

@@ -1,13 +1,42 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { CMSLayout } from '@/components/layout/CMSLayout';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Database, FileText } from 'lucide-react';
+import { PlusCircle, Database, FileText, Loader2 } from 'lucide-react';
 import { useCmsStore } from '@/stores/cmsStore';
+import { toast } from 'sonner';
 
 const Content: React.FC = () => {
-  const { contentTypes } = useCmsStore();
+  const { contentTypes, fetchContentTypes } = useCmsStore();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        await fetchContentTypes();
+        console.log('Content types loaded in Content page:', contentTypes);
+      } catch (error) {
+        console.error('Error loading content types:', error);
+        toast.error('Failed to load content types');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadData();
+  }, [fetchContentTypes]);
+
+  if (loading) {
+    return (
+      <CMSLayout>
+        <div className="flex justify-center items-center h-[50vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="ml-2">Loading content types...</span>
+        </div>
+      </CMSLayout>
+    );
+  }
 
   return (
     <CMSLayout>
@@ -19,6 +48,12 @@ const Content: React.FC = () => {
               Create, edit, and manage content in your collections
             </p>
           </div>
+          <Button asChild>
+            <Link to="/content-types">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Create Content Type
+            </Link>
+          </Button>
         </div>
 
         {contentTypes.length === 0 ? (

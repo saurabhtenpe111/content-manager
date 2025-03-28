@@ -14,9 +14,9 @@ export async function migrateAddUIOptions() {
       console.log('Adding ui_options column to fields table...');
       
       try {
-        // Use SQL to alter the table
+        // Use raw SQL to alter the table since RPC might not be available
         const { error } = await supabase.rpc('execute_sql', { 
-          query: 'ALTER TABLE fields ADD COLUMN IF NOT EXISTS ui_options JSONB'
+          sql: 'ALTER TABLE fields ADD COLUMN IF NOT EXISTS ui_options JSONB'
         });
         
         if (error) {
