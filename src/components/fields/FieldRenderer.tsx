@@ -37,6 +37,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { NumberField } from './NumberField';
 
 export interface FieldRendererProps {
   field: Field;
@@ -185,6 +186,20 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({
     const currentValue = value !== undefined ? value : field.defaultValue;
     const isDisabled = disabled || isPreview;
     
+    if (typeof window !== 'undefined' && (window as any).__EXTENDED_FIELD_RENDERER) {
+      const extendedField = (window as any).__EXTENDED_FIELD_RENDERER(field, {
+        value: currentValue,
+        onChange,
+        error,
+        disabled: isDisabled,
+        isPreview
+      });
+      
+      if (extendedField) {
+        return extendedField;
+      }
+    }
+    
     switch (field.type) {
       case 'text':
         return (
@@ -222,6 +237,34 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({
         );
         
       case 'number':
+        if (field.uiOptions && Object.keys(field.uiOptions).length > 0) {
+          return (
+            <NumberField
+              id={fieldId}
+              label={field.label}
+              value={typeof currentValue === 'number' ? currentValue : null}
+              onChange={onChange}
+              description={field.description}
+              placeholder={field.placeholder || '0'}
+              min={field.uiOptions?.minValue}
+              max={field.uiOptions?.maxValue}
+              step={field.uiOptions?.step || 1}
+              decimalPlaces={field.uiOptions?.decimalPlaces}
+              showButtons={field.uiOptions?.showButtons}
+              buttonLayout={field.uiOptions?.buttonLayout || 'horizontal'}
+              currency={field.uiOptions?.currency}
+              locale={field.uiOptions?.locale || 'en-US'}
+              prefix={field.uiOptions?.prefix}
+              suffix={field.uiOptions?.suffix}
+              filled={field.uiOptions?.variant === 'filled'}
+              floatLabel={field.uiOptions?.floatingLabel}
+              disabled={isDisabled}
+              required={isRequired}
+              error={error}
+            />
+          );
+        }
+        
         return (
           <div className="space-y-2">
             <Label htmlFor={fieldId}>{field.label}{isRequired && <span className="text-red-500 ml-1">*</span>}</Label>
@@ -231,7 +274,7 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({
               type="number"
               placeholder={field.placeholder}
               value={currentValue || ''}
-              onChange={(e) => handleValueChange(e.target.value)}
+              onChange={(e) => onChange && onChange(e.target.value)}
               disabled={isDisabled}
               className={error ? 'border-red-500' : ''}
             />

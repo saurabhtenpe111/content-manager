@@ -3,6 +3,8 @@ import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { Label } from '@/components/ui/label';
+import { FormDescription } from '@/components/ui/form';
 
 export type Addon = {
   position: 'left' | 'right';
@@ -11,7 +13,8 @@ export type Addon = {
   onClick?: () => void;
 };
 
-interface InputGroupProps {
+export interface InputGroupProps {
+  id?: string;
   label?: string;
   placeholder?: string;
   addons?: Addon[];
@@ -22,10 +25,10 @@ interface InputGroupProps {
   required?: boolean;
   error?: string;
   name?: string;
-  id?: string;
 }
 
 export const InputGroup: React.FC<InputGroupProps> = ({
+  id,
   label,
   placeholder,
   addons = [],
@@ -36,10 +39,9 @@ export const InputGroup: React.FC<InputGroupProps> = ({
   required = false,
   error,
   name,
-  id,
 }) => {
-  const leftAddons = addons.filter(addon => addon.position === 'left');
-  const rightAddons = addons.filter(addon => addon.position === 'right');
+  const leftAddons = addons?.filter(addon => addon.position === 'left') || [];
+  const rightAddons = addons?.filter(addon => addon.position === 'right') || [];
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (onChange) {
@@ -80,10 +82,10 @@ export const InputGroup: React.FC<InputGroupProps> = ({
   return (
     <div className={cn('space-y-2', className)}>
       {label && (
-        <label htmlFor={id || name} className="block text-sm font-medium text-gray-700">
+        <Label htmlFor={id || name} className="block text-sm font-medium text-gray-700">
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
-        </label>
+        </Label>
       )}
       
       <div className="flex">

@@ -1,11 +1,12 @@
 
 import React from 'react';
-import { InputGroup } from './InputGroup';
+import { InputGroup, Addon } from './InputGroup';
 import { InputMask } from './InputMask';
 import { TriStateCheckbox } from './TriStateCheckbox';
 import { InputOTPField } from './InputOTP';
 import { RatingField } from './Rating';
 import { MultiSelect } from './MultiSelect';
+import { NumberField } from './NumberField';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { FormDescription } from '@/components/ui/form';
@@ -31,10 +32,7 @@ export const renderExtendedField = (
           label={field.label}
           value={value}
           onChange={onChange}
-          description={field.description}
           placeholder={field.placeholder}
-          prefix={field.uiOptions?.prefix}
-          suffix={field.uiOptions?.suffix}
           addons={field.uiOptions?.addons}
           disabled={disabled || isPreview}
           required={field.validation?.required}
@@ -147,6 +145,33 @@ export const renderExtendedField = (
           error={error}
           allowSearch={field.uiOptions?.allowSearch !== false}
           allowClear={field.uiOptions?.allowClear !== false}
+        />
+      );
+      
+    case 'number':
+      return (
+        <NumberField
+          id={field.id}
+          label={field.label}
+          value={value}
+          onChange={onChange}
+          description={field.description}
+          placeholder={field.placeholder}
+          min={field.uiOptions?.minValue}
+          max={field.uiOptions?.maxValue}
+          step={field.uiOptions?.step || 1}
+          decimalPlaces={field.uiOptions?.decimalPlaces}
+          showButtons={field.uiOptions?.showButtons}
+          buttonLayout={field.uiOptions?.buttonLayout || 'horizontal'}
+          currency={field.uiOptions?.currency}
+          locale={field.uiOptions?.locale || 'en-US'}
+          prefix={field.uiOptions?.prefix}
+          suffix={field.uiOptions?.suffix}
+          filled={field.uiOptions?.variant === 'filled'}
+          floatLabel={field.uiOptions?.floatingLabel}
+          disabled={disabled || isPreview}
+          required={field.validation?.required}
+          error={error}
         />
       );
       

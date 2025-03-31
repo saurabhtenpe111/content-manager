@@ -27,6 +27,11 @@ export interface UiOptions {
   minValue?: number;
   maxValue?: number;
   step?: number;
+  decimalPlaces?: number;
+  currency?: string;
+  locale?: string;
+  showButtons?: boolean;
+  buttonLayout?: 'horizontal' | 'vertical';
   
   // Text field specific
   minLength?: number;
@@ -57,7 +62,7 @@ export interface UiOptions {
   // Input group specific
   prefix?: string;
   suffix?: string;
-  addons?: { position: 'left' | 'right'; content: string }[];
+  addons?: { position: 'left' | 'right'; content: string; type?: 'text' | 'button'; onClick?: () => void }[];
   
   // Rich text specific
   toolbar?: string[];
