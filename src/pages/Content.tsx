@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -79,6 +78,11 @@ const Content: React.FC = () => {
   const contentType = contentTypes?.length > 0 ? contentTypes[0] : null;
   const apiId = contentType?.apiId || generateApiId(contentType?.name || '');
   
+  const handleViewItems = (contentType: any) => {
+    const apiId = contentType.apiId || generateApiId(contentType.name);
+    navigate(`/content-items/${contentType.id}/${apiId}`);
+  };
+
   const { data: contentItems, isLoading: isContentItemsLoading } = useQuery({
     queryKey: ['contentItems', contentTypeId, sortField, sortOrder, searchText],
     queryFn: async () => {
@@ -190,7 +194,7 @@ const Content: React.FC = () => {
                   </span>
                   <Button variant="ghost" size="sm" className="gap-1" onClick={(e) => {
                     e.stopPropagation();
-                    navigate(`/content/${contentType.id}`);
+                    handleViewItems(contentType);
                   }}>
                     <FileText size={14} />
                     View Items

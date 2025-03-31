@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/integrations/supabase/client';
@@ -54,6 +55,8 @@ export interface ContentType {
   apiIdPlural?: string;
   isCollection?: boolean;
   fields: Field[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface CmsState {
@@ -100,10 +103,10 @@ export const useCmsStore = create<CmsState>((set, get) => ({
         id: item.id,
         name: item.name,
         description: item.description,
-        apiId: item.api_id || generateApiId(item.name),
-        apiIdPlural: item.api_id_plural || generateApiPlural(generateApiId(item.name)),
-        isCollection: item.is_collection !== false, // Default to true if not specified
-        fields: item.fields.map((field: any) => ({
+        apiId: generateApiId(item.name), // Use the function to generate apiId
+        apiIdPlural: generateApiPlural(generateApiId(item.name)),
+        isCollection: item.is_published !== false, // Use is_published as fallback for isCollection
+        fields: (item.fields || []).map((field: any) => ({
           id: field.id,
           name: field.name,
           label: field.label,
@@ -115,6 +118,8 @@ export const useCmsStore = create<CmsState>((set, get) => ({
           options: field.options,
           uiOptions: field.ui_options || {},
         })),
+        createdAt: item.created_at,
+        updatedAt: item.updated_at
       }));
       
       set({ contentTypes });
@@ -132,6 +137,7 @@ export const useCmsStore = create<CmsState>((set, get) => ({
       const apiId = contentType.apiId || generateApiId(contentType.name);
       const apiIdPlural = contentType.apiIdPlural || generateApiPlural(apiId);
       
+      // Match the Supabase schema - use name, description, and is_published
       const { data, error } = await supabase
         .from('content_types')
         .insert([
@@ -139,9 +145,8 @@ export const useCmsStore = create<CmsState>((set, get) => ({
             id: uuidv4(), 
             name: contentType.name, 
             description: contentType.description,
-            api_id: apiId,
-            api_id_plural: apiIdPlural,
-            is_collection: contentType.isCollection !== false,
+            is_published: contentType.isCollection !== false,
+            user_id: 'system' // Required field in the schema
           }
         ])
         .select()
@@ -154,10 +159,12 @@ export const useCmsStore = create<CmsState>((set, get) => ({
           id: data.id, 
           name: data.name, 
           description: data.description,
-          apiId: data.api_id,
-          apiIdPlural: data.api_id_plural,
-          isCollection: data.is_collection !== false,
+          apiId: apiId, // Store generated apiId
+          apiIdPlural: apiIdPlural, // Store generated apiIdPlural
+          isCollection: data.is_published !== false,
           fields: [],
+          createdAt: data.created_at,
+          updatedAt: data.updated_at
         }],
       }));
     } catch (error) {
