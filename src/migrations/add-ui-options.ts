@@ -1,10 +1,16 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
+interface MigrationResult {
+  success: boolean;
+  error?: string;
+  data?: any;
+}
+
 /**
  * Adds UI options column to fields table
  */
-export async function addUiOptionsColumn() {
+export async function addUiOptionsColumn(): Promise<MigrationResult> {
   try {
     const sql = `
       ALTER TABLE fields 
@@ -16,13 +22,22 @@ export async function addUiOptionsColumn() {
     
     if (error) {
       console.error('Error adding UI options column:', error);
-      throw error;
+      return {
+        success: false,
+        error: error.message
+      };
     }
     
     console.log('UI options column added successfully');
-    return data;
-  } catch (error) {
+    return {
+      success: true,
+      data
+    };
+  } catch (error: any) {
     console.error('Failed to add UI options column:', error);
-    throw error;
+    return {
+      success: false,
+      error: error.message || 'Unknown error'
+    };
   }
 }

@@ -103,7 +103,7 @@ export const useCmsStore = create<CmsState>((set, get) => ({
         id: item.id,
         name: item.name,
         description: item.description,
-        apiId: generateApiId(item.name), // Use the function to generate apiId
+        apiId: generateApiId(item.name), // Generate apiId from name
         apiIdPlural: generateApiPlural(generateApiId(item.name)),
         isCollection: item.is_published !== false, // Use is_published as fallback for isCollection
         fields: (item.fields || []).map((field: any) => ({
@@ -167,7 +167,7 @@ export const useCmsStore = create<CmsState>((set, get) => ({
           updatedAt: data.updated_at
         }],
       }));
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating content type:', error);
       throw error;
     }

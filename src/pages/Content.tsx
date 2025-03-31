@@ -76,10 +76,10 @@ const Content: React.FC = () => {
   });
   
   const contentType = contentTypes?.length > 0 ? contentTypes[0] : null;
-  const apiId = contentType?.apiId || generateApiId(contentType?.name || '');
+  const apiId = contentType ? generateApiId(contentType.name) : '';
   
   const handleViewItems = (contentType: any) => {
-    const apiId = contentType.apiId || generateApiId(contentType.name);
+    const apiId = generateApiId(contentType.name);
     navigate(`/content-items/${contentType.id}/${apiId}`);
   };
 
@@ -95,7 +95,6 @@ const Content: React.FC = () => {
           .eq('content_type_id', contentTypeId);
         
         if (searchText) {
-          // Use ilike for basic text search instead of textSearch which might not be available
           query = query
             .or(`name.ilike.%${searchText}%,description.ilike.%${searchText}%`);
         }
@@ -200,11 +199,9 @@ const Content: React.FC = () => {
                     View Items
                   </Button>
                 </div>
-                {contentType.api_id && (
-                  <div className="mt-2 pt-2 border-t text-xs text-muted-foreground">
-                    <span className="font-semibold">API ID:</span> {contentType.api_id}
-                  </div>
-                )}
+                <div className="mt-2 pt-2 border-t text-xs text-muted-foreground">
+                  <span className="font-semibold">API ID:</span> {generateApiId(contentType.name)}
+                </div>
               </div>
             ))}
           </div>
