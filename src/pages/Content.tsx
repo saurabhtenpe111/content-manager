@@ -1,28 +1,42 @@
-
-import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { CMSLayout } from '@/components/layout/CMSLayout';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Database, PlusCircle, FileText } from 'lucide-react';
 import { toast } from 'sonner';
-import { migrateUiOptionsColumn } from '@/migrations/add-ui-options';
+import { migrateUiOptionsColumn, generateApiId } from '@/migrations/add-ui-options';
 
-const Content = () => {
+const Content: React.FC = () => {
   const navigate = useNavigate();
+  const { contentTypeId } = useParams<{ contentTypeId: string }>();
+  const queryClient = useQueryClient();
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [searchText, setSearchText] = useState('');
+  const [sortField, setSortField] = useState('created_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   
-  // Run migration when component mounts
   useEffect(() => {
-    migrateUiOptionsColumn()
-      .then(success => {
-        if (success) {
-          console.log('Database migration completed successfully');
+    const runMigration = async () => {
+      try {
+        const { addUiOptionsColumn } = await import('@/migrations/add-ui-options');
+        const result = await addUiOptionsColumn();
+        
+        if (result.success) {
+          console.log('UI options migration completed successfully');
+        } else {
+          console.error('UI options migration failed:', result.error);
         }
-      })
-      .catch(error => {
-        console.error('Migration failed:', error);
-      });
+      } catch (error) {
+        console.error('Failed to run UI options migration:', error);
+      }
+    };
+    
+    runMigration();
   }, []);
   
   const { data: contentTypes, isLoading, error } = useQuery({
@@ -44,6 +58,38 @@ const Content = () => {
         toast.error('Failed to load content types');
         return [];
       }
+    }
+  });
+  
+  const contentType = data?.length > 0 ? data[0] : null;
+  const apiId = contentType?.apiId || generateApiId(contentType?.name || '');
+  
+  const contentItems = useQuery({
+    queryKey: ['contentItems', contentTypeId, sortField, sortOrder, searchText],
+    queryFn: async () => {
+      if (!contentTypeId) return [];
+      
+      let query = supabase
+        .from(`content_${apiId}`)
+        .select('*');
+      
+      if (searchText) {
+        query = query
+          .textSearch('name', searchText, { type: 'plain' })
+          .textSearch('description', searchText, { type: 'plain' });
+      }
+      
+      if (sortField) {
+        query = query.order(sortField, { ascending: sortOrder === 'asc' });
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        throw error;
+      }
+      
+      return data || [];
     }
   });
   
@@ -137,6 +183,75 @@ const Content = () => {
             ))}
           </div>
         )}
+        
+        <div className="mt-6">
+          <h2 className="text-xl font-bold">Content Items</h2>
+          <div className="flex items-center justify-between">
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2 w-full"
+            />
+            <select
+              value={sortField}
+              onChange={(e) => setSortField(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2 w-24"
+            >
+              <option value="created_at">Created At</option>
+              <option value="name">Name</option>
+              <option value="description">Description</option>
+            </select>
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2 w-24"
+            >
+              <option value="asc">Ascending</option>
+              <option value="desc">Descending</option>
+            </select>
+          </div>
+          
+          {contentItems.isLoading ? (
+            <div className="flex justify-center items-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="ml-2">Loading content items...</span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {contentItems.data?.map((item) => (
+                <div 
+                  key={item.id}
+                  className="border rounded-lg p-6 hover:border-primary cursor-pointer transition-colors"
+                  onClick={() => navigate(`/content/${item.id}`)}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="text-lg font-semibold">{item.name}</h3>
+                    <div className="bg-gray-100 text-gray-600 rounded-full px-2 py-0.5 text-xs">
+                      {item.fields?.length || 0} Fields
+                    </div>
+                  </div>
+                  <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
+                    {item.description || 'No description provided'}
+                  </p>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">
+                      {new Date(item.created_at).toLocaleDateString()}
+                    </span>
+                    <Button variant="ghost" size="sm" className="gap-1" onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/content/${item.id}`);
+                    }}>
+                      <FileText size={14} />
+                      View
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </CMSLayout>
   );

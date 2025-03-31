@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { FieldTypes } from '@/components/fields/FieldTypes';
 import { FieldConfigPanel } from '@/components/fields/FieldConfigPanel';
 import { FieldRenderer } from '@/components/fields/FieldRenderer';
+import { useExtendedFields } from '@/hooks/use-extended-fields';
 import { 
   Sheet,
   SheetContent,
@@ -33,8 +34,11 @@ import {
 } from '@/components/ui/dialog';
 
 const ContentTypeBuilder: React.FC = () => {
+  useExtendedFields();
+  
   const { contentTypeId } = useParams<{ contentTypeId: string }>();
   const navigate = useNavigate();
+  
   const { 
     contentTypes, 
     updateContentType, 

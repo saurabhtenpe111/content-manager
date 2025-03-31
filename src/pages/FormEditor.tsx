@@ -16,8 +16,12 @@ import { Label } from '@/components/ui/label';
 import { ChevronLeft, Save, LayoutGrid, PlusCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { FieldRenderer } from '@/components/fields/FieldRenderer';
+import { useExtendedFields } from '@/hooks/use-extended-fields';
 
 const FormEditor: React.FC = () => {
+  // Initialize the extended fields hook
+  useExtendedFields();
+  
   const { contentTypeId } = useParams<{ contentTypeId: string }>();
   const navigate = useNavigate();
   const { contentTypes, fetchContentTypes, setActiveField } = useCmsStore();

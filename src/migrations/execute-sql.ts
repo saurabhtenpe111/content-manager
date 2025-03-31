@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export const executeSql = async (sql: string): Promise<{ success: boolean; error?: any }> => {
   try {
+    // Using a dynamic RPC call to handle the function name
     const { error } = await supabase.rpc('execute_migration_sql', { sql_command: sql });
     
     if (error) {

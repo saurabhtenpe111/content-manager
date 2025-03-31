@@ -15,7 +15,15 @@ import {
   ToggleLeft, 
   Sliders, 
   Palette,
-  Component 
+  Component,
+  Star,
+  ListTree,
+  Hash as ListBox,
+  AtSign,
+  CircleCheck,
+  KeySquare,
+  SquareStackIcon,
+  SlidersHorizontal
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -51,6 +59,7 @@ interface FieldTypesProps {
 
 export const FieldTypes: React.FC<FieldTypesProps> = ({ onSelect, className }) => {
   const fieldTypes = [
+    // Basic fields
     { type: 'text', label: 'Text Field', icon: <Type size={16} /> },
     { type: 'textarea', label: 'Text Area', icon: <AlignLeft size={16} /> },
     { type: 'number', label: 'Number', icon: <Hash size={16} /> },
@@ -64,6 +73,22 @@ export const FieldTypes: React.FC<FieldTypesProps> = ({ onSelect, className }) =
     { type: 'toggle', label: 'Toggle', icon: <ToggleLeft size={16} /> },
     { type: 'slider', label: 'Slider', icon: <Sliders size={16} /> },
     { type: 'color', label: 'Color Picker', icon: <Palette size={16} /> },
+    
+    // New field types
+    { type: 'inputgroup', label: 'Input Group', icon: <SquareStackIcon size={16} /> },
+    { type: 'inputmask', label: 'Input Mask', icon: <Hash size={16} /> },
+    { type: 'inputswitch', label: 'Input Switch', icon: <SlidersHorizontal size={16} /> },
+    { type: 'tristatecheckbox', label: 'Tri-State Checkbox', icon: <CircleCheck size={16} /> },
+    { type: 'inputotp', label: 'Input OTP', icon: <KeySquare size={16} /> },
+    { type: 'treeselect', label: 'Tree Select', icon: <ListTree size={16} /> },
+    { type: 'listbox', label: 'List Box', icon: <ListBox size={16} /> },
+    { type: 'mention', label: 'Mention Box', icon: <AtSign size={16} /> },
+    { type: 'selectbutton', label: 'Select Button', icon: <Radio size={16} /> },
+    { type: 'rating', label: 'Rating', icon: <Star size={16} /> },
+    { type: 'multistatecheckbox', label: 'Multi-State Checkbox', icon: <CheckSquare size={16} /> },
+    { type: 'multiselect', label: 'Multi Select', icon: <List size={16} /> },
+    
+    // Advanced components
     { type: 'component', label: 'Component', icon: <Component size={16} /> },
   ];
   
