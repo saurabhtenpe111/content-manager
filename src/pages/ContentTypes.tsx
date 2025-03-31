@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { CMSLayout } from '@/components/layout/CMSLayout';
 import { ContentTypeList } from '@/components/content-type/ContentTypeList';
@@ -112,7 +113,6 @@ const ContentTypes: React.FC = () => {
               name: 'New Collection',
               description: 'A new collection type',
               isCollection: true,
-              isPublished: false,
               apiId: '',
               apiIdPlural: ''
             }}
@@ -137,7 +137,6 @@ const ContentTypes: React.FC = () => {
               name: 'New Component',
               description: 'A reusable component for your content types',
               isCollection: false,
-              isPublished: false,
               apiId: '',
               apiIdPlural: ''
             }}

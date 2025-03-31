@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -6,7 +7,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Database, PlusCircle, FileText } from 'lucide-react';
 import { toast } from 'sonner';
-import { migrateUiOptionsColumn, generateApiId } from '@/migrations/add-ui-options';
+import { executeSql } from '@/migrations/execute-sql';
+import { generateApiId, generateApiPlural } from '@/utils/api-naming';
 
 const Content: React.FC = () => {
   const navigate = useNavigate();
@@ -23,8 +25,21 @@ const Content: React.FC = () => {
   useEffect(() => {
     const runMigration = async () => {
       try {
-        const { addUiOptionsColumn } = await import('@/migrations/add-ui-options');
-        const result = await addUiOptionsColumn();
+        // Add UI options column migration
+        const sql = `
+          DO $$
+          BEGIN
+            IF NOT EXISTS (
+              SELECT 1 FROM information_schema.columns 
+              WHERE table_name = 'fields' AND column_name = 'ui_options'
+            ) THEN
+              ALTER TABLE fields ADD COLUMN ui_options JSONB DEFAULT '{}'::jsonb;
+            END IF;
+          END
+          $$;
+        `;
+        
+        const result = await executeSql(sql);
         
         if (result.success) {
           console.log('UI options migration completed successfully');
@@ -61,36 +76,43 @@ const Content: React.FC = () => {
     }
   });
   
-  const contentType = data?.length > 0 ? data[0] : null;
+  const contentType = contentTypes?.length > 0 ? contentTypes[0] : null;
   const apiId = contentType?.apiId || generateApiId(contentType?.name || '');
   
-  const contentItems = useQuery({
+  const { data: contentItems, isLoading: isContentItemsLoading } = useQuery({
     queryKey: ['contentItems', contentTypeId, sortField, sortOrder, searchText],
     queryFn: async () => {
-      if (!contentTypeId) return [];
+      if (!contentTypeId || !apiId) return [];
       
-      let query = supabase
-        .from(`content_${apiId}`)
-        .select('*');
-      
-      if (searchText) {
-        query = query
-          .textSearch('name', searchText, { type: 'plain' })
-          .textSearch('description', searchText, { type: 'plain' });
+      try {
+        let query = supabase
+          .from(`content_items`)
+          .select('*')
+          .eq('content_type_id', contentTypeId);
+        
+        if (searchText) {
+          // Use ilike for basic text search instead of textSearch which might not be available
+          query = query
+            .or(`name.ilike.%${searchText}%,description.ilike.%${searchText}%`);
+        }
+        
+        if (sortField) {
+          query = query.order(sortField, { ascending: sortOrder === 'asc' });
+        }
+        
+        const { data, error } = await query;
+        
+        if (error) {
+          throw error;
+        }
+        
+        return data || [];
+      } catch (error) {
+        console.error('Error fetching content items:', error);
+        return [];
       }
-      
-      if (sortField) {
-        query = query.order(sortField, { ascending: sortOrder === 'asc' });
-      }
-      
-      const { data, error } = await query;
-      
-      if (error) {
-        throw error;
-      }
-      
-      return data || [];
-    }
+    },
+    enabled: !!contentTypeId && !!apiId
   });
   
   if (isLoading) {
@@ -147,7 +169,7 @@ const Content: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {contentTypes?.map((contentType) => (
+            {contentTypes?.map((contentType: any) => (
               <div 
                 key={contentType.id}
                 className="border rounded-lg p-6 hover:border-primary cursor-pointer transition-colors"
@@ -205,7 +227,7 @@ const Content: React.FC = () => {
             </select>
             <select
               value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value)}
+              onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
               className="border border-gray-300 rounded-lg px-3 py-2 w-24"
             >
               <option value="asc">Ascending</option>
@@ -213,24 +235,21 @@ const Content: React.FC = () => {
             </select>
           </div>
           
-          {contentItems.isLoading ? (
+          {isContentItemsLoading ? (
             <div className="flex justify-center items-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <span className="ml-2">Loading content items...</span>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {contentItems.data?.map((item) => (
+              {contentItems?.map((item: any) => (
                 <div 
                   key={item.id}
                   className="border rounded-lg p-6 hover:border-primary cursor-pointer transition-colors"
                   onClick={() => navigate(`/content/${item.id}`)}
                 >
                   <div className="flex items-start justify-between mb-2">
-                    <h3 className="text-lg font-semibold">{item.name}</h3>
-                    <div className="bg-gray-100 text-gray-600 rounded-full px-2 py-0.5 text-xs">
-                      {item.fields?.length || 0} Fields
-                    </div>
+                    <h3 className="text-lg font-semibold">{item.name || 'Untitled Item'}</h3>
                   </div>
                   <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
                     {item.description || 'No description provided'}
@@ -241,7 +260,7 @@ const Content: React.FC = () => {
                     </span>
                     <Button variant="ghost" size="sm" className="gap-1" onClick={(e) => {
                       e.stopPropagation();
-                      navigate(`/content/${item.id}`);
+                      navigate(`/content-item/${item.id}`);
                     }}>
                       <FileText size={14} />
                       View

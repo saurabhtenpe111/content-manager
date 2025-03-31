@@ -1,142 +1,120 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { FormDescription } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-interface Addon {
+export type Addon = {
   position: 'left' | 'right';
   content: string;
-  type?: 'text' | 'button';
+  type: 'text' | 'button';
   onClick?: () => void;
-}
+};
 
 interface InputGroupProps {
-  id: string;
   label?: string;
+  placeholder?: string;
+  addons?: Addon[];
   value?: string;
   onChange?: (value: string) => void;
-  description?: string;
-  placeholder?: string;
-  prefix?: string;
-  suffix?: string;
-  addons?: Addon[];
+  className?: string;
   disabled?: boolean;
   required?: boolean;
   error?: string;
+  name?: string;
+  id?: string;
 }
 
 export const InputGroup: React.FC<InputGroupProps> = ({
-  id,
   label,
+  placeholder,
+  addons = [],
   value = '',
   onChange,
-  description,
-  placeholder,
-  prefix,
-  suffix,
-  addons = [],
+  className,
   disabled = false,
   required = false,
   error,
+  name,
+  id,
 }) => {
-  const [inputValue, setInputValue] = useState(value);
-  
-  useEffect(() => {
-    setInputValue(value);
-  }, [value]);
+  const leftAddons = addons.filter(addon => addon.position === 'left');
+  const rightAddons = addons.filter(addon => addon.position === 'right');
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInputValue(e.target.value);
     if (onChange) {
       onChange(e.target.value);
     }
   };
   
-  const leftAddons = [...(prefix ? [{ position: 'left', content: prefix, type: 'text' }] : []), 
-                     ...addons.filter(addon => addon.position === 'left')];
-                     
-  const rightAddons = [...(suffix ? [{ position: 'right', content: suffix, type: 'text' }] : []),
-                      ...addons.filter(addon => addon.position === 'right')];
+  const renderAddon = (addon: Addon) => {
+    if (addon.type === 'button') {
+      return (
+        <Button
+          type="button"
+          variant="outline"
+          className={cn(
+            addon.position === 'left' ? 'rounded-r-none' : 'rounded-l-none',
+            'border-gray-300'
+          )}
+          onClick={addon.onClick}
+          disabled={disabled}
+        >
+          {addon.content}
+        </Button>
+      );
+    }
+    
+    return (
+      <div
+        className={cn(
+          'flex items-center px-3 bg-gray-100 border border-gray-300 text-gray-600',
+          addon.position === 'left' ? 'rounded-l-md border-r-0' : 'rounded-r-md border-l-0'
+        )}
+      >
+        {addon.content}
+      </div>
+    );
+  };
   
   return (
-    <div className="space-y-2">
+    <div className={cn('space-y-2', className)}>
       {label && (
-        <Label htmlFor={id} className="text-sm font-medium">
+        <label htmlFor={id || name} className="block text-sm font-medium text-gray-700">
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
-        </Label>
+        </label>
       )}
       
       <div className="flex">
         {leftAddons.map((addon, index) => (
-          addon.type === 'button' ? (
-            <Button
-              key={`left-${index}`}
-              onClick={addon.onClick}
-              disabled={disabled}
-              className="rounded-r-none"
-              variant="secondary"
-            >
-              {addon.content}
-            </Button>
-          ) : (
-            <div 
-              key={`left-${index}`}
-              className="flex items-center justify-center px-3 border border-r-0 rounded-l-md bg-gray-50 text-gray-500"
-            >
-              {addon.content}
-            </div>
-          )
+          <div key={`left-addon-${index}`}>{renderAddon(addon)}</div>
         ))}
         
         <Input
-          id={id}
-          name={id}
-          value={inputValue}
+          id={id || name}
+          name={name}
+          value={value}
           onChange={handleChange}
           placeholder={placeholder}
           disabled={disabled}
+          required={required}
           className={cn(
-            error ? "border-red-500" : "",
-            leftAddons.length > 0 ? "rounded-l-none" : "",
-            rightAddons.length > 0 ? "rounded-r-none" : ""
+            'flex-1',
+            leftAddons.length > 0 && 'rounded-l-none',
+            rightAddons.length > 0 && 'rounded-r-none',
+            error && 'border-red-500 focus:ring-red-500'
           )}
         />
         
         {rightAddons.map((addon, index) => (
-          addon.type === 'button' ? (
-            <Button
-              key={`right-${index}`}
-              onClick={addon.onClick}
-              disabled={disabled}
-              className="rounded-l-none"
-              variant="secondary"
-            >
-              {addon.content}
-            </Button>
-          ) : (
-            <div 
-              key={`right-${index}`}
-              className="flex items-center justify-center px-3 border border-l-0 rounded-r-md bg-gray-50 text-gray-500"
-            >
-              {addon.content}
-            </div>
-          )
+          <div key={`right-addon-${index}`}>{renderAddon(addon)}</div>
         ))}
       </div>
       
-      {description && (
-        <FormDescription className="text-xs text-gray-500">
-          {description}
-        </FormDescription>
-      )}
-      
-      {error && (
-        <p className="text-sm text-red-500 mt-1">{error}</p>
-      )}
+      {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
     </div>
   );
 };
+
+export default InputGroup;
