@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { CMSLayout } from '@/components/layout/CMSLayout';
@@ -7,9 +7,23 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Database, PlusCircle, FileText } from 'lucide-react';
 import { toast } from 'sonner';
+import { migrateUiOptionsColumn } from '@/migrations/add-ui-options';
 
 const Content = () => {
   const navigate = useNavigate();
+  
+  // Run migration when component mounts
+  useEffect(() => {
+    migrateUiOptionsColumn()
+      .then(success => {
+        if (success) {
+          console.log('Database migration completed successfully');
+        }
+      })
+      .catch(error => {
+        console.error('Migration failed:', error);
+      });
+  }, []);
   
   const { data: contentTypes, isLoading, error } = useQuery({
     queryKey: ['contentTypes'],
@@ -106,7 +120,10 @@ const Content = () => {
                   <span className="text-sm text-muted-foreground">
                     {new Date(contentType.created_at).toLocaleDateString()}
                   </span>
-                  <Button variant="ghost" size="sm" className="gap-1">
+                  <Button variant="ghost" size="sm" className="gap-1" onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/content/${contentType.id}`);
+                  }}>
                     <FileText size={14} />
                     View Items
                   </Button>

@@ -62,7 +62,10 @@ const ContentTypes: React.FC = () => {
             initialData={{
               name: 'New Collection',
               description: 'A new collection type',
-              isCollection: true
+              isCollection: true,
+              isPublished: false,
+              apiId: '',
+              apiIdPlural: ''
             }}
           />
         </DialogContent>
@@ -84,7 +87,10 @@ const ContentTypes: React.FC = () => {
             initialData={{
               name: 'New Component',
               description: 'A reusable component for your content types',
-              isCollection: false
+              isCollection: false,
+              isPublished: false,
+              apiId: '',
+              apiIdPlural: ''
             }}
           />
         </DialogContent>
