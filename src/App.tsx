@@ -1,6 +1,6 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
-import { AuthProvider, useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/useAuth';
 
 import Index from '@/pages/Index';
 import ContentTypes from '@/pages/ContentTypes';
@@ -123,7 +123,6 @@ const App: React.FC = () => {
         } 
       />
       
-      {/* Content Routes */}
       <Route 
         path="/content" 
         element={
@@ -133,7 +132,6 @@ const App: React.FC = () => {
         } 
       />
       
-      {/* Content Item Routes */}
       <Route 
         path="/content/:contentTypeId" 
         element={
