@@ -1,5 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { executeSql } from './execute-sql';
 
 interface MigrationResult {
   success: boolean;
@@ -17,22 +18,7 @@ export async function addUiOptionsColumn(): Promise<MigrationResult> {
       ADD COLUMN IF NOT EXISTS ui_options JSONB DEFAULT '{}'::jsonb;
     `;
     
-    // Use the function that's available in your Supabase project
-    const { data, error } = await supabase.rpc('generate_api_key');
-    
-    if (error) {
-      console.error('Error adding UI options column:', error);
-      return {
-        success: false,
-        error: error.message
-      };
-    }
-    
-    console.log('UI options column added successfully');
-    return {
-      success: true,
-      data
-    };
+    return await executeSql(sql);
   } catch (error: any) {
     console.error('Failed to add UI options column:', error);
     return {

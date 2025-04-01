@@ -33,6 +33,29 @@ export type FieldType =
   | 'multistatecheckbox'
   | 'multiselect';
 
+export interface ValidationOptions {
+  required?: boolean;
+  minLength?: number;
+  maxLength?: number;
+  minValue?: number;
+  maxValue?: number;
+  pattern?: string;
+  patternMessage?: string;
+  unique?: boolean;
+  nullable?: boolean;
+  indexed?: boolean;
+  defaultValue?: any;
+  email?: boolean;
+  url?: boolean;
+  dateRange?: {
+    min?: string;
+    max?: string;
+  };
+  fileSize?: number;
+  fileType?: string[];
+  decimalPlaces?: number;
+}
+
 export interface Field {
   id: string;
   name: string;
@@ -41,7 +64,7 @@ export interface Field {
   description?: string;
   placeholder?: string;
   defaultValue?: any;
-  validation?: Record<string, any>;
+  validation?: ValidationOptions;
   options?: { label: string; value: string }[];
   subfields?: Field[];
   uiOptions?: Record<string, any>;
@@ -114,7 +137,10 @@ export const useCmsStore = create<CmsState>((set, get) => ({
           description: field.description,
           placeholder: field.placeholder,
           defaultValue: field.default_value,
-          validation: field.validation,
+          validation: field.validation || {
+            required: false,
+            nullable: true
+          },
           options: field.options,
           uiOptions: field.ui_options || {},
         })),
@@ -123,7 +149,7 @@ export const useCmsStore = create<CmsState>((set, get) => ({
       }));
       
       set({ contentTypes });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching content types:', error);
     }
   },

@@ -22,9 +22,16 @@ import {
   X, 
   Plus, 
   Trash2,
-  Move
+  Move,
+  CheckCircle,
+  AlertTriangle,
+  Palette,
+  Settings
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AdvancedValidation } from './AdvancedValidation';
+import { UiOptionsEditor } from './UiOptionsEditor';
 
 interface FieldConfigPanelProps {
   field: Field;
@@ -46,11 +53,13 @@ export const FieldConfigPanel: React.FC<FieldConfigPanelProps> = ({
   const [defaultValue, setDefaultValue] = useState<string>(
     field.defaultValue !== undefined ? String(field.defaultValue) : ''
   );
-  const [required, setRequired] = useState(field.validation?.required || false);
+  const [validation, setValidation] = useState(field.validation || {});
+  const [uiOptions, setUiOptions] = useState(field.uiOptions || {});
   const [options, setOptions] = useState<{label: string; value: string}[]>(
     field.options || []
   );
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [activeTab, setActiveTab] = useState("basic");
 
   const isSubfield = '_parentFieldId' in field && '_subfieldIndex' in field;
   const parentFieldId = isSubfield ? (field as any)._parentFieldId : null;
@@ -65,10 +74,8 @@ export const FieldConfigPanel: React.FC<FieldConfigPanelProps> = ({
       description,
       placeholder,
       defaultValue: defaultValue === '' ? undefined : defaultValue,
-      validation: {
-        ...(field.validation || {}),
-        required,
-      },
+      validation,
+      uiOptions,
       options: field.type === 'dropdown' || field.type === 'radio' ? options : undefined,
     };
 
@@ -167,6 +174,14 @@ export const FieldConfigPanel: React.FC<FieldConfigPanelProps> = ({
     newOptions.splice(targetIndex, 0, movedOption);
     setOptions(newOptions);
   };
+
+  const handleValidationChange = (updatedValidation: any) => {
+    setValidation(updatedValidation);
+  };
+
+  const handleUiOptionsChange = (updatedUiOptions: any) => {
+    setUiOptions(updatedUiOptions);
+  };
   
   // Generate field ID based on name (for HTML purposes)
   const generateFieldId = (fieldName: string) => {
@@ -187,53 +202,65 @@ export const FieldConfigPanel: React.FC<FieldConfigPanelProps> = ({
           </div>
         </div>
         
-        <div className="flex-1 overflow-y-auto p-4 space-y-6">
-          <div className="space-y-4">
-            <h3 className="text-base font-medium text-cms-gray-700">Basic Settings</h3>
+        <div className="flex-1 overflow-y-auto p-4">
+          <Tabs defaultValue="basic" value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="w-full">
+              <TabsTrigger value="basic" className="flex items-center">
+                <Settings className="h-4 w-4 mr-2" />
+                Basic
+              </TabsTrigger>
+              <TabsTrigger value="validation" className="flex items-center">
+                <AlertTriangle className="h-4 w-4 mr-2" />
+                Validation
+              </TabsTrigger>
+              <TabsTrigger value="appearance" className="flex items-center">
+                <Palette className="h-4 w-4 mr-2" />
+                Appearance
+              </TabsTrigger>
+              {(field.type === 'dropdown' || field.type === 'radio') && (
+                <TabsTrigger value="options">Options</TabsTrigger>
+              )}
+            </TabsList>
             
-            <div className="space-y-2">
-              <Label htmlFor="field-name">Name (API Key)</Label>
-              <Input 
-                id="field-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-              <p className="text-xs text-cms-gray-500">
-                Used as the field identifier in API responses
-              </p>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="field-label">Label</Label>
-              <Input 
-                id="field-label"
-                value={label}
-                onChange={(e) => setLabel(e.target.value)}
-              />
-              <p className="text-xs text-cms-gray-500">
-                Displayed to the user in the form
-              </p>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="field-description">Description (Optional)</Label>
-              <Textarea 
-                id="field-description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Provide more information about this field..."
-                rows={3}
-              />
-              <p className="text-xs text-cms-gray-500">
-                Help text shown to users when filling out the form
-              </p>
-            </div>
-          </div>
-          
-          {field.type !== 'component' && (
-            <div className="space-y-4">
-              <h3 className="text-base font-medium text-cms-gray-700">Field Settings</h3>
+            <TabsContent value="basic" className="py-4 space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="field-name">Name (API Key)</Label>
+                <Input 
+                  id="field-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+                <p className="text-xs text-cms-gray-500">
+                  Used as the field identifier in API responses
+                </p>
+              </div>
               
+              <div className="space-y-2">
+                <Label htmlFor="field-label">Label</Label>
+                <Input 
+                  id="field-label"
+                  value={label}
+                  onChange={(e) => setLabel(e.target.value)}
+                />
+                <p className="text-xs text-cms-gray-500">
+                  Displayed to the user in the form
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="field-description">Description (Optional)</Label>
+                <Textarea 
+                  id="field-description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Provide more information about this field..."
+                  rows={3}
+                />
+                <p className="text-xs text-cms-gray-500">
+                  Help text shown to users when filling out the form
+                </p>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="field-placeholder">Placeholder (Optional)</Label>
                 <Input 
@@ -256,7 +283,17 @@ export const FieldConfigPanel: React.FC<FieldConfigPanelProps> = ({
                   />
                 </div>
               )}
-              
+            </TabsContent>
+
+            <TabsContent value="validation" className="py-4">
+              <AdvancedValidation field={field} onChange={handleValidationChange} />
+            </TabsContent>
+
+            <TabsContent value="appearance" className="py-4">
+              <UiOptionsEditor field={field} onChange={handleUiOptionsChange} />
+            </TabsContent>
+
+            <TabsContent value="options" className="py-4">
               {(field.type === 'dropdown' || field.type === 'radio') && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between mb-2">
@@ -316,25 +353,8 @@ export const FieldConfigPanel: React.FC<FieldConfigPanelProps> = ({
                   )}
                 </div>
               )}
-            </div>
-          )}
-          
-          <div className="space-y-4">
-            <h3 className="text-base font-medium text-cms-gray-700">Validation</h3>
-            
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="field-required"
-                checked={required}
-                onCheckedChange={(checked) => setRequired(checked as boolean)}
-              />
-              <Label htmlFor="field-required" className="text-sm font-normal">
-                Required field
-              </Label>
-            </div>
-            
-            {/* Additional validation options could be added here based on field type */}
-          </div>
+            </TabsContent>
+          </Tabs>
         </div>
         
         <div className="border-t border-cms-gray-200 p-4 flex items-center justify-between">
@@ -352,6 +372,7 @@ export const FieldConfigPanel: React.FC<FieldConfigPanelProps> = ({
               Cancel
             </Button>
             <Button onClick={handleSave}>
+              <CheckCircle size={16} className="mr-2" />
               Save Changes
             </Button>
           </div>

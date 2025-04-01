@@ -12,7 +12,9 @@ interface SqlExecutionResult {
  */
 export async function executeSql(sql: string): Promise<SqlExecutionResult> {
   try {
-    const { data, error } = await supabase.rpc('generate_api_key');
+    // Note: In a real implementation, you'd have a custom RPC function to execute SQL
+    // For demonstration purposes, we're using a placeholder
+    const { data, error } = await supabase.rpc('execute_sql', { sql_query: sql });
     
     if (error) {
       console.error('Error executing SQL:', error);
