@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Field, ValidationOptions } from '@/stores/cmsStore';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -209,7 +208,10 @@ export const AdvancedValidation: React.FC<AdvancedValidationProps> = ({ field, o
                   value={(validation.fileType || []).join(', ')}
                   onChange={(e) => {
                     const types = e.target.value.split(',').map(t => t.trim().toLowerCase());
-                    handleInputChange('fileType', types.filter(Boolean));
+                    setValidation(prev => ({
+                      ...prev,
+                      fileType: types.filter(Boolean)
+                    }));
                   }}
                   placeholder="All file types"
                 />

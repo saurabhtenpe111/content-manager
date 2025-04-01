@@ -18,7 +18,6 @@ export type FieldType =
   | 'slider' 
   | 'color' 
   | 'component'
-  // New field types
   | 'inputgroup'
   | 'inputmask'
   | 'inputswitch'
@@ -53,7 +52,6 @@ export interface ValidationOptions {
   fileSize?: number;
   fileType?: string[];
   decimalPlaces?: number;
-  // Additional properties for validation
   min?: number | string;
   max?: number | string;
   message?: string;
@@ -71,6 +69,35 @@ export interface Field {
   options?: { label: string; value: string }[];
   subfields?: Field[];
   uiOptions?: Record<string, any>;
+}
+
+interface ContentTypeData {
+  id: string;
+  name: string;
+  description?: string;
+  is_published: boolean;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
+  api_id?: string;
+  api_id_plural?: string;
+  fields: {
+    content_type_id: string;
+    created_at: string;
+    default_value: any;
+    description?: string;
+    id: string;
+    is_hidden: boolean;
+    label: string;
+    name: string;
+    options?: any;
+    placeholder?: string;
+    position: number;
+    type: string;
+    updated_at: string;
+    ui_options?: any;
+    validation: any;
+  }[];
 }
 
 export interface ContentType {
@@ -124,8 +151,7 @@ export const useCmsStore = create<CmsState>((set, get) => ({
         
       if (error) throw error;
       
-      // Convert from database format to our internal format
-      const contentTypes: ContentType[] = data.map(item => {
+      const contentTypes: ContentType[] = (data as ContentTypeData[]).map(item => {
         const apiId = item.api_id || generateApiId(item.name);
         const apiIdPlural = item.api_id_plural || generateApiPlural(apiId);
         
@@ -135,7 +161,7 @@ export const useCmsStore = create<CmsState>((set, get) => ({
           description: item.description,
           apiId: apiId,
           apiIdPlural: apiIdPlural,
-          isCollection: item.is_published !== false, // Use is_published as fallback for isCollection
+          isCollection: item.is_published !== false,
           fields: (item.fields || []).map((field: any) => ({
             id: field.id,
             name: field.name,
@@ -171,7 +197,6 @@ export const useCmsStore = create<CmsState>((set, get) => ({
       const apiId = contentType.apiId || generateApiId(contentType.name);
       const apiIdPlural = contentType.apiIdPlural || generateApiPlural(apiId);
       
-      // Match the Supabase schema with our content type model
       const { data, error } = await supabase
         .from('content_types')
         .insert([
@@ -181,7 +206,7 @@ export const useCmsStore = create<CmsState>((set, get) => ({
             is_published: contentType.isCollection !== false,
             api_id: apiId,
             api_id_plural: apiIdPlural,
-            user_id: (await supabase.auth.getUser()).data.user?.id || 'system' // Get the current user ID
+            user_id: (await supabase.auth.getUser()).data.user?.id || 'system'
           }
         ])
         .select()

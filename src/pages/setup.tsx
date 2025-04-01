@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import fs from 'fs';
 
 const SetupPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
