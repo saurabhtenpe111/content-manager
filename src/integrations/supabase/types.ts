@@ -96,6 +96,8 @@ export type Database = {
       }
       content_types: {
         Row: {
+          api_id: string | null
+          api_id_plural: string | null
           created_at: string
           description: string | null
           id: string
@@ -105,6 +107,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          api_id?: string | null
+          api_id_plural?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -114,6 +118,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          api_id?: string | null
+          api_id_plural?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -168,6 +174,7 @@ export type Database = {
           placeholder: string | null
           position: number
           type: string
+          ui_options: Json | null
           updated_at: string
           validation: Json | null
         }
@@ -184,6 +191,7 @@ export type Database = {
           placeholder?: string | null
           position?: number
           type: string
+          ui_options?: Json | null
           updated_at?: string
           validation?: Json | null
         }
@@ -200,6 +208,7 @@ export type Database = {
           placeholder?: string | null
           position?: number
           type?: string
+          ui_options?: Json | null
           updated_at?: string
           validation?: Json | null
         }

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCmsStore, Field } from '@/stores/cmsStore';
@@ -118,7 +117,7 @@ export const ContentItemForm: React.FC<ContentItemFormProps> = ({
       if (validation?.minValue !== undefined && typeof value === 'number') {
         const minVal = Number(validation.minValue);
         if (value < minVal) {
-          newErrors[field.name] = `${field.label} must be at least ${minVal}`;
+          newErrors[field.name] = `Value must be at least ${minVal}`;
           isValid = false;
           return;
         }
@@ -128,7 +127,7 @@ export const ContentItemForm: React.FC<ContentItemFormProps> = ({
       if (validation?.maxValue !== undefined && typeof value === 'number') {
         const maxVal = Number(validation.maxValue);
         if (value > maxVal) {
-          newErrors[field.name] = `${field.label} must be less than ${maxVal}`;
+          newErrors[field.name] = `Value must be at most ${maxVal}`;
           isValid = false;
           return;
         }

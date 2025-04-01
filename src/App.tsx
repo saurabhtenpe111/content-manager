@@ -1,4 +1,3 @@
-
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
 import { AuthProvider, useAuth } from '@/hooks/useAuth';
@@ -17,6 +16,7 @@ import ContentItems from '@/pages/ContentItems';
 import ContentItemEditor from '@/pages/ContentItemEditor';
 import Auth from '@/pages/Auth';
 import NotFound from '@/pages/NotFound';
+import SetupPage from '@/pages/setup';
 
 import './App.css';
 
@@ -35,156 +35,153 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-function App() {
+const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/auth" element={<Auth />} />
-          
-          <Route 
-            path="/" 
-            element={
-              <ProtectedRoute>
-                <Index />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/content-types" 
-            element={
-              <ProtectedRoute>
-                <ContentTypes />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/content-types/:contentTypeId" 
-            element={
-              <ProtectedRoute>
-                <ContentTypeBuilder />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/form-builder" 
-            element={
-              <ProtectedRoute>
-                <FormBuilder />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/form-builder/:contentTypeId" 
-            element={
-              <ProtectedRoute>
-                <FormEditor />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/fields-library" 
-            element={
-              <ProtectedRoute>
-                <FieldsLibrary />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/users" 
-            element={
-              <ProtectedRoute>
-                <Users />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/api-keys" 
-            element={
-              <ProtectedRoute>
-                <ApiKeys />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/settings" 
-            element={
-              <ProtectedRoute>
-                <Settings />
-              </ProtectedRoute>
-            } 
-          />
-          
-          {/* Content Routes */}
-          <Route 
-            path="/content" 
-            element={
-              <ProtectedRoute>
-                <Content />
-              </ProtectedRoute>
-            } 
-          />
-          
-          {/* Content Item Routes */}
-          <Route 
-            path="/content/:contentTypeId" 
-            element={
-              <ProtectedRoute>
-                <ContentItems />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/content/:contentTypeId/new" 
-            element={
-              <ProtectedRoute>
-                <ContentItemEditor />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/content/:contentTypeId/:contentItemId" 
-            element={
-              <ProtectedRoute>
-                <ContentItemEditor />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/content/:contentTypeId/:contentItemId/edit" 
-            element={
-              <ProtectedRoute>
-                <ContentItemEditor />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/content/:contentTypeId/:contentItemId/view" 
-            element={
-              <ProtectedRoute>
-                <ContentItemEditor />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </Router>
-      <Toaster />
-    </AuthProvider>
+    <Routes>
+      <Route path="/setup" element={<SetupPage />} />
+      
+      <Route path="/auth" element={<Auth />} />
+      
+      <Route 
+        path="/" 
+        element={
+          <ProtectedRoute>
+            <Index />
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/content-types" 
+        element={
+          <ProtectedRoute>
+            <ContentTypes />
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/content-types/:contentTypeId" 
+        element={
+          <ProtectedRoute>
+            <ContentTypeBuilder />
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/form-builder" 
+        element={
+          <ProtectedRoute>
+            <FormBuilder />
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/form-builder/:contentTypeId" 
+        element={
+          <ProtectedRoute>
+            <FormEditor />
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/fields-library" 
+        element={
+          <ProtectedRoute>
+            <FieldsLibrary />
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/users" 
+        element={
+          <ProtectedRoute>
+            <Users />
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/api-keys" 
+        element={
+          <ProtectedRoute>
+            <ApiKeys />
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/settings" 
+        element={
+          <ProtectedRoute>
+            <Settings />
+          </ProtectedRoute>
+        } 
+      />
+      
+      {/* Content Routes */}
+      <Route 
+        path="/content" 
+        element={
+          <ProtectedRoute>
+            <Content />
+          </ProtectedRoute>
+        } 
+      />
+      
+      {/* Content Item Routes */}
+      <Route 
+        path="/content/:contentTypeId" 
+        element={
+          <ProtectedRoute>
+            <ContentItems />
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/content/:contentTypeId/new" 
+        element={
+          <ProtectedRoute>
+            <ContentItemEditor />
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/content/:contentTypeId/:contentItemId" 
+        element={
+          <ProtectedRoute>
+            <ContentItemEditor />
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/content/:contentTypeId/:contentItemId/edit" 
+        element={
+          <ProtectedRoute>
+            <ContentItemEditor />
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/content/:contentTypeId/:contentItemId/view" 
+        element={
+          <ProtectedRoute>
+            <ContentItemEditor />
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   );
-}
+};
 
 export default App;
