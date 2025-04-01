@@ -44,26 +44,32 @@ export const ValidationPreview: React.FC<ValidationPreviewProps> = ({ field }) =
     });
   }
   
-  if (validation.minValue !== undefined) {
+  // Support both minValue and min
+  const minValue = validation.minValue !== undefined ? validation.minValue : validation.min;
+  if (minValue !== undefined) {
     validationRules.push({ 
       label: 'Min Value', 
-      description: `Minimum value: ${validation.minValue}`,
+      description: `Minimum value: ${minValue}`,
       icon: <Info className="h-4 w-4 text-blue-500" />
     });
   }
   
-  if (validation.maxValue !== undefined) {
+  // Support both maxValue and max
+  const maxValue = validation.maxValue !== undefined ? validation.maxValue : validation.max;
+  if (maxValue !== undefined) {
     validationRules.push({ 
       label: 'Max Value', 
-      description: `Maximum value: ${validation.maxValue}`,
+      description: `Maximum value: ${maxValue}`,
       icon: <Info className="h-4 w-4 text-blue-500" />
     });
   }
   
   if (validation.pattern) {
+    // Support both patternMessage and message
+    const patternMsg = validation.patternMessage || validation.message || 'Must match specific pattern';
     validationRules.push({ 
       label: 'Pattern', 
-      description: validation.patternMessage || 'Must match specific pattern',
+      description: patternMsg,
       icon: <Info className="h-4 w-4 text-blue-500" />
     });
   }
