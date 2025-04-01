@@ -15,7 +15,7 @@ export async function executeSql(sql: string): Promise<SqlExecutionResult> {
     // Execute SQL query using the execute_migration_sql RPC function
     // Note: This function must be defined in your Supabase project
     const { data, error } = await supabase.rpc('execute_migration_sql', { 
-      sql_query: sql 
+      sql_command: sql 
     });
     
     if (error) {

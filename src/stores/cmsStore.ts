@@ -126,31 +126,36 @@ export const useCmsStore = create<CmsState>((set, get) => ({
       if (error) throw error;
       
       // Convert from database format to our internal format
-      const contentTypes: ContentType[] = data.map(item => ({
-        id: item.id,
-        name: item.name,
-        description: item.description,
-        apiId: item.api_id || generateApiId(item.name), // Use api_id if available, otherwise generate
-        apiIdPlural: item.api_id_plural || generateApiPlural(generateApiId(item.name)),
-        isCollection: item.is_published !== false, // Use is_published as fallback for isCollection
-        fields: (item.fields || []).map((field: any) => ({
-          id: field.id,
-          name: field.name,
-          label: field.label,
-          type: field.type,
-          description: field.description,
-          placeholder: field.placeholder,
-          defaultValue: field.default_value,
-          validation: field.validation || {
-            required: false,
-            nullable: true
-          },
-          options: field.options,
-          uiOptions: field.ui_options || {},
-        })),
-        createdAt: item.created_at,
-        updatedAt: item.updated_at
-      }));
+      const contentTypes: ContentType[] = data.map(item => {
+        const apiId = item.api_id || generateApiId(item.name);
+        const apiIdPlural = item.api_id_plural || generateApiPlural(apiId);
+        
+        return {
+          id: item.id,
+          name: item.name,
+          description: item.description,
+          apiId: apiId,
+          apiIdPlural: apiIdPlural,
+          isCollection: item.is_published !== false, // Use is_published as fallback for isCollection
+          fields: (item.fields || []).map((field: any) => ({
+            id: field.id,
+            name: field.name,
+            label: field.label,
+            type: field.type,
+            description: field.description,
+            placeholder: field.placeholder,
+            defaultValue: field.default_value,
+            validation: field.validation || {
+              required: false,
+              nullable: true
+            },
+            options: field.options,
+            uiOptions: field.ui_options || {},
+          })),
+          createdAt: item.created_at,
+          updatedAt: item.updated_at
+        };
+      });
       
       set({ contentTypes });
     } catch (error: any) {

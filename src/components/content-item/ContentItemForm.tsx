@@ -102,16 +102,36 @@ export const ContentItemForm: React.FC<ContentItemFormProps> = ({
         return;
       }
       
-      if (validation?.min && typeof value === 'string' && value.length < validation.min) {
-        newErrors[field.name] = `${field.label} must be at least ${validation.min} characters`;
+      if (validation?.minLength && typeof value === 'string' && value.length < validation.minLength) {
+        newErrors[field.name] = `${field.label} must be at least ${validation.minLength} characters`;
         isValid = false;
         return;
       }
       
-      if (validation?.max && typeof value === 'string' && value.length > validation.max) {
-        newErrors[field.name] = `${field.label} must be less than ${validation.max} characters`;
+      if (validation?.maxLength && typeof value === 'string' && value.length > validation.maxLength) {
+        newErrors[field.name] = `${field.label} must be less than ${validation.maxLength} characters`;
         isValid = false;
         return;
+      }
+      
+      // Handle minValue validation (ensure both values are numbers for comparison)
+      if (validation?.minValue !== undefined && typeof value === 'number') {
+        const minVal = Number(validation.minValue);
+        if (value < minVal) {
+          newErrors[field.name] = `${field.label} must be at least ${minVal}`;
+          isValid = false;
+          return;
+        }
+      }
+      
+      // Handle maxValue validation (ensure both values are numbers for comparison)
+      if (validation?.maxValue !== undefined && typeof value === 'number') {
+        const maxVal = Number(validation.maxValue);
+        if (value > maxVal) {
+          newErrors[field.name] = `${field.label} must be less than ${maxVal}`;
+          isValid = false;
+          return;
+        }
       }
       
       if (validation?.pattern && typeof value === 'string' && !new RegExp(validation.pattern).test(value)) {

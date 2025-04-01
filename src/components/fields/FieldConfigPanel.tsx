@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Field,
@@ -286,7 +285,7 @@ export const FieldConfigPanel: React.FC<FieldConfigPanelProps> = ({
             </TabsContent>
 
             <TabsContent value="validation" className="py-4">
-              <AdvancedValidation field={field} onChange={handleValidationChange} />
+              <AdvancedValidation field={field} onUpdate={handleValidationChange} />
             </TabsContent>
 
             <TabsContent value="appearance" className="py-4">

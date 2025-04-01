@@ -25,6 +25,8 @@ export interface InputGroupProps {
   required?: boolean;
   error?: string;
   name?: string;
+  children?: React.ReactNode;
+  icon?: React.ReactNode;
 }
 
 export const InputGroup: React.FC<InputGroupProps> = ({
@@ -39,6 +41,8 @@ export const InputGroup: React.FC<InputGroupProps> = ({
   required = false,
   error,
   name,
+  children,
+  icon,
 }) => {
   const leftAddons = addons?.filter(addon => addon.position === 'left') || [];
   const rightAddons = addons?.filter(addon => addon.position === 'right') || [];
@@ -83,6 +87,7 @@ export const InputGroup: React.FC<InputGroupProps> = ({
     <div className={cn('space-y-2', className)}>
       {label && (
         <Label htmlFor={id || name} className="block text-sm font-medium text-gray-700">
+          {icon && <span className="mr-1.5 inline-flex items-center">{icon}</span>}
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </Label>
@@ -93,21 +98,25 @@ export const InputGroup: React.FC<InputGroupProps> = ({
           <div key={`left-addon-${index}`}>{renderAddon(addon)}</div>
         ))}
         
-        <Input
-          id={id || name}
-          name={name}
-          value={value}
-          onChange={handleChange}
-          placeholder={placeholder}
-          disabled={disabled}
-          required={required}
-          className={cn(
-            'flex-1',
-            leftAddons.length > 0 && 'rounded-l-none',
-            rightAddons.length > 0 && 'rounded-r-none',
-            error && 'border-red-500 focus:ring-red-500'
-          )}
-        />
+        {children ? (
+          children
+        ) : (
+          <Input
+            id={id || name}
+            name={name}
+            value={value}
+            onChange={handleChange}
+            placeholder={placeholder}
+            disabled={disabled}
+            required={required}
+            className={cn(
+              'flex-1',
+              leftAddons.length > 0 && 'rounded-l-none',
+              rightAddons.length > 0 && 'rounded-r-none',
+              error && 'border-red-500 focus:ring-red-500'
+            )}
+          />
+        )}
         
         {rightAddons.map((addon, index) => (
           <div key={`right-addon-${index}`}>{renderAddon(addon)}</div>

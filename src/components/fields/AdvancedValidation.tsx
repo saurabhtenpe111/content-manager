@@ -21,7 +21,7 @@ import {
   Hash,
   Fingerprint,
   Ban
-} from 'lucide-react'; // Corrected FingerPrint to Fingerprint
+} from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 
 interface AdvancedValidationProps {
@@ -71,7 +71,10 @@ export const AdvancedValidation: React.FC<AdvancedValidationProps> = ({ field, o
           <TabsContent value="basic" className="space-y-4 pt-4">
             {common}
             
-            <InputGroup label="Min Length" icon={<FileText className="h-4 w-4" />}>
+            <InputGroup 
+              label="Min Length" 
+              icon={<FileText className="h-4 w-4" />}
+            >
               <Input
                 type="number"
                 min="0"
@@ -84,7 +87,10 @@ export const AdvancedValidation: React.FC<AdvancedValidationProps> = ({ field, o
               />
             </InputGroup>
             
-            <InputGroup label="Max Length" icon={<FileText className="h-4 w-4" />}>
+            <InputGroup 
+              label="Max Length" 
+              icon={<FileText className="h-4 w-4" />}
+            >
               <Input
                 type="number"
                 min="0"
@@ -145,7 +151,10 @@ export const AdvancedValidation: React.FC<AdvancedValidationProps> = ({ field, o
               </div>
             )}
             
-            <InputGroup label="Pattern" icon={<Hash className="h-4 w-4" />}>
+            <InputGroup 
+              label="Pattern" 
+              icon={<Hash className="h-4 w-4" />}
+            >
               <Input
                 placeholder="Regular expression pattern"
                 value={validation.pattern || ''}
@@ -153,7 +162,10 @@ export const AdvancedValidation: React.FC<AdvancedValidationProps> = ({ field, o
               />
             </InputGroup>
             
-            <InputGroup label="Pattern Message" icon={<AlertCircle className="h-4 w-4" />}>
+            <InputGroup 
+              label="Pattern Message" 
+              icon={<AlertCircle className="h-4 w-4" />}
+            >
               <Input
                 placeholder="Error message for pattern"
                 value={validation.patternMessage || ''}
@@ -177,7 +189,10 @@ export const AdvancedValidation: React.FC<AdvancedValidationProps> = ({ field, o
           <TabsContent value="basic" className="space-y-4 pt-4">
             {common}
             
-            <InputGroup label="Min Value" icon={<FileText className="h-4 w-4" />}>
+            <InputGroup 
+              label="Min Value" 
+              icon={<FileText className="h-4 w-4" />}
+            >
               <Input
                 type="number"
                 placeholder="Minimum value"
@@ -189,7 +204,10 @@ export const AdvancedValidation: React.FC<AdvancedValidationProps> = ({ field, o
               />
             </InputGroup>
             
-            <InputGroup label="Max Value" icon={<FileText className="h-4 w-4" />}>
+            <InputGroup 
+              label="Max Value" 
+              icon={<FileText className="h-4 w-4" />}
+            >
               <Input
                 type="number"
                 placeholder="Maximum value"
@@ -241,7 +259,10 @@ export const AdvancedValidation: React.FC<AdvancedValidationProps> = ({ field, o
         <div className="space-y-4">
           {common}
           
-          <InputGroup label="Max File Size (MB)" icon={<FileText className="h-4 w-4" />}>
+          <InputGroup 
+            label="Max File Size (MB)" 
+            icon={<FileText className="h-4 w-4" />}
+          >
             <Input
               type="number"
               min="0"
@@ -254,7 +275,10 @@ export const AdvancedValidation: React.FC<AdvancedValidationProps> = ({ field, o
             />
           </InputGroup>
           
-          <InputGroup label="Allowed File Types" icon={<FileText className="h-4 w-4" />}>
+          <InputGroup 
+            label="Allowed File Types" 
+            icon={<FileText className="h-4 w-4" />}
+          >
             <Input
               placeholder="e.g., .jpg, .pdf, .png"
               value={validation.fileType ? validation.fileType.join(', ') : ''}
