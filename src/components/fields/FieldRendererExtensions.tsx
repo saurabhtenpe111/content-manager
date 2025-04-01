@@ -32,7 +32,18 @@ export const renderExtendedField = (
   field: Field, 
   props: FieldRendererExtensionProps
 ): React.ReactNode | null => {
-  // This is where we would implement custom field rendering
-  // For now, we're just returning null to fix the export error
-  return null;
+  // This function will be used to render custom field types
+  // You can implement custom field type rendering logic here
+  // For example:
+  switch (field.type) {
+    case 'inputgroup':
+      return <div className="custom-input-group">{props.field.label}</div>;
+    case 'inputmask':
+      return <div className="custom-input-mask">{props.field.label}</div>;
+    case 'inputswitch':
+      return <div className="custom-input-switch">{props.field.label}</div>;
+    // Add cases for other custom field types
+    default:
+      return null;
+  }
 };

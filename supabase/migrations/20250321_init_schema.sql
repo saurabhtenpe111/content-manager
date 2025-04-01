@@ -4,6 +4,8 @@ CREATE TABLE IF NOT EXISTS public.content_types (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   description TEXT,
+  api_id TEXT,
+  api_id_plural TEXT,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -22,6 +24,7 @@ CREATE TABLE IF NOT EXISTS public.fields (
   default_value JSONB,
   validation JSONB,
   options JSONB,
+  ui_options JSONB DEFAULT '{}'::jsonb,
   is_hidden BOOLEAN DEFAULT false,
   position INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
@@ -97,7 +100,7 @@ END
 $$;
 
 -- Add or replace the function to generate a secure API key
-CREATE OR REPLACE FUNCTION generate_api_key(key_name TEXT)
+CREATE OR REPLACE FUNCTION generate_api_key(key_name TEXT, key_description TEXT DEFAULT NULL)
 RETURNS TEXT
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -113,11 +116,13 @@ BEGIN
   -- Insert the key into the api_keys table
   INSERT INTO public.api_keys (
     name, 
+    description,
     user_id, 
     key_prefix, 
     key_hash
   ) VALUES (
-    key_name, 
+    key_name,
+    key_description,
     auth.uid(), 
     key_prefix, 
     crypt(new_key, gen_salt('bf'))
@@ -129,11 +134,32 @@ BEGIN
 END;
 $$;
 
+-- Create RPC function to execute migration SQL
+CREATE OR REPLACE FUNCTION execute_migration_sql(sql_query TEXT)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  EXECUTE sql_query;
+  RETURN jsonb_build_object('success', true);
+EXCEPTION WHEN OTHERS THEN
+  RETURN jsonb_build_object(
+    'success', false,
+    'error', SQLERRM
+  );
+END;
+$$;
+
 -- Create indexes if they don't exist
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_content_types_user_id') THEN
     CREATE INDEX idx_content_types_user_id ON public.content_types(user_id);
+  END IF;
+  
+  IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_content_types_api_id') THEN
+    CREATE INDEX idx_content_types_api_id ON public.content_types(api_id);
   END IF;
   
   IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_fields_content_type_id') THEN
@@ -185,3 +211,6 @@ BEGIN
   END IF;
 END
 $$;
+
+-- Grant proper permissions for the execute_migration_sql function
+GRANT EXECUTE ON FUNCTION execute_migration_sql TO authenticated;

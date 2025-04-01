@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { CMSLayout } from '@/components/layout/CMSLayout';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -12,7 +13,8 @@ import {
   EyeOff,
   PlusCircle,
   Component,
-  Plus
+  Plus,
+  Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { FieldTypes } from '@/components/fields/FieldTypes';
@@ -32,6 +34,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { syncFieldsToDatabase, updateContentTypeApiIds } from '@/utils/field-db-sync';
+import { supabase } from '@/integrations/supabase/client';
 
 const ContentTypeBuilder: React.FC = () => {
   useExtendedFields();
@@ -58,6 +62,7 @@ const ContentTypeBuilder: React.FC = () => {
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [isPreviewDialogOpen, setIsPreviewDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [isAddComponentDialogOpen, setIsAddComponentDialogOpen] = useState(false);
   
   const contentType = contentTypes.find((ct) => ct.id === contentTypeId);
@@ -113,7 +118,8 @@ const ContentTypeBuilder: React.FC = () => {
     return (
       <CMSLayout>
         <div className="flex justify-center items-center h-64">
-          <p>Loading content type...</p>
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="ml-2">Loading content type...</p>
         </div>
       </CMSLayout>
     );
@@ -143,13 +149,44 @@ const ContentTypeBuilder: React.FC = () => {
     );
   }
   
-  const handleSave = () => {
-    updateContentType(contentType.id, {
-      name,
-      description,
-    });
+  const handleSave = async () => {
+    if (!contentType) return;
     
-    toast.success('Content type updated successfully!');
+    try {
+      setIsSaving(true);
+      
+      // First update the content type in local state
+      updateContentType(contentType.id, {
+        name,
+        description,
+      });
+      
+      // Then update the content type in the database
+      const updatedContentType = {
+        ...contentType,
+        name,
+        description,
+      };
+      
+      // Update API IDs in the database
+      const apiResult = await updateContentTypeApiIds(updatedContentType);
+      if (!apiResult.success) {
+        throw new Error(apiResult.error || 'Failed to update API IDs');
+      }
+      
+      // Then sync fields to the database
+      const result = await syncFieldsToDatabase(contentType.id, contentType.fields);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to sync fields to database');
+      }
+      
+      toast.success('Content type updated successfully!');
+    } catch (error: any) {
+      console.error('Error saving content type:', error);
+      toast.error(error.message || 'Failed to save content type');
+    } finally {
+      setIsSaving(false);
+    }
   };
   
   const handleAddField = (type: FieldType) => {
@@ -443,9 +480,21 @@ const ContentTypeBuilder: React.FC = () => {
               Add Field
             </Button>
             
-            <Button onClick={handleSave}>
-              <Save size={16} className="mr-2" />
-              Save
+            <Button 
+              onClick={handleSave} 
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 size={16} className="mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save size={16} className="mr-2" />
+                  Save
+                </>
+              )}
             </Button>
           </div>
         </div>

@@ -54,6 +54,10 @@ export interface ValidationOptions {
   fileSize?: number;
   fileType?: string[];
   decimalPlaces?: number;
+  // Additional properties for validation
+  min?: number | string;
+  max?: number | string;
+  message?: string;
 }
 
 export interface Field {
@@ -126,8 +130,8 @@ export const useCmsStore = create<CmsState>((set, get) => ({
         id: item.id,
         name: item.name,
         description: item.description,
-        apiId: generateApiId(item.name), // Generate apiId from name
-        apiIdPlural: generateApiPlural(generateApiId(item.name)),
+        apiId: item.api_id || generateApiId(item.name), // Use api_id if available, otherwise generate
+        apiIdPlural: item.api_id_plural || generateApiPlural(generateApiId(item.name)),
         isCollection: item.is_published !== false, // Use is_published as fallback for isCollection
         fields: (item.fields || []).map((field: any) => ({
           id: field.id,
@@ -163,16 +167,17 @@ export const useCmsStore = create<CmsState>((set, get) => ({
       const apiId = contentType.apiId || generateApiId(contentType.name);
       const apiIdPlural = contentType.apiIdPlural || generateApiPlural(apiId);
       
-      // Match the Supabase schema - use name, description, and is_published
+      // Match the Supabase schema with our content type model
       const { data, error } = await supabase
         .from('content_types')
         .insert([
           { 
-            id: uuidv4(), 
             name: contentType.name, 
             description: contentType.description,
             is_published: contentType.isCollection !== false,
-            user_id: 'system' // Required field in the schema
+            api_id: apiId,
+            api_id_plural: apiIdPlural,
+            user_id: (await supabase.auth.getUser()).data.user?.id || 'system' // Get the current user ID
           }
         ])
         .select()
@@ -185,8 +190,8 @@ export const useCmsStore = create<CmsState>((set, get) => ({
           id: data.id, 
           name: data.name, 
           description: data.description,
-          apiId: apiId, // Store generated apiId
-          apiIdPlural: apiIdPlural, // Store generated apiIdPlural
+          apiId: apiId,
+          apiIdPlural: apiIdPlural,
           isCollection: data.is_published !== false,
           fields: [],
           createdAt: data.created_at,

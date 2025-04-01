@@ -12,10 +12,11 @@ interface SqlExecutionResult {
  */
 export async function executeSql(sql: string): Promise<SqlExecutionResult> {
   try {
-    // Note: In a real implementation, you'd have a custom RPC function to execute SQL
-    // For demonstration purposes, we're using a placeholder
-    // Using dynamic approach to avoid TypeScript errors with RPC function name
-    const { data, error } = await supabase.rpc('execute_migration_sql', { sql_query: sql });
+    // Execute SQL query using the execute_migration_sql RPC function
+    // Note: This function must be defined in your Supabase project
+    const { data, error } = await supabase.rpc('execute_migration_sql', { 
+      sql_query: sql 
+    });
     
     if (error) {
       console.error('Error executing SQL:', error);

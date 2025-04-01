@@ -20,6 +20,8 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface ContentTypeFormProps {
   onClose: () => void;
@@ -55,6 +57,7 @@ export const ContentTypeForm: React.FC<ContentTypeFormProps> = ({
   const { addContentType } = useCmsStore();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("basic");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -96,6 +99,25 @@ export const ContentTypeForm: React.FC<ContentTypeFormProps> = ({
   
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
+      setIsSubmitting(true);
+      
+      // Check for user authentication
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        toast.error('You must be logged in to create a content type');
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Generate API IDs if not provided
+      if (!values.apiId) {
+        values.apiId = slugify(values.name);
+      }
+      
+      if (!values.apiIdPlural) {
+        values.apiIdPlural = pluralize(values.apiId);
+      }
+      
       const contentType = {
         name: values.name,
         description: values.description,
@@ -115,9 +137,11 @@ export const ContentTypeForm: React.FC<ContentTypeFormProps> = ({
       if (createdContentType) {
         navigate(`/content-types/${createdContentType.id}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create content type:', error);
-      toast.error('Failed to create content type');
+      toast.error(error.message || 'Failed to create content type');
+    } finally {
+      setIsSubmitting(false);
     }
   };
   
@@ -263,7 +287,16 @@ export const ContentTypeForm: React.FC<ContentTypeFormProps> = ({
           {activeTab === "basic" ? (
             <Button type="button" onClick={() => setActiveTab("advanced")}>Next</Button>
           ) : (
-            <Button type="submit">Create</Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                'Create'
+              )}
+            </Button>
           )}
         </div>
       </form>
