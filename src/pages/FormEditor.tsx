@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { CMSLayout } from '@/components/layout/CMSLayout';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -19,7 +18,6 @@ import { FieldRenderer } from '@/components/fields/FieldRenderer';
 import { useExtendedFields } from '@/hooks/use-extended-fields';
 
 const FormEditor: React.FC = () => {
-  // Initialize the extended fields hook
   useExtendedFields();
   
   const { contentTypeId } = useParams<{ contentTypeId: string }>();
@@ -34,7 +32,6 @@ const FormEditor: React.FC = () => {
   const contentType = contentTypes.find(ct => ct.id === contentTypeId);
   
   useEffect(() => {
-    // Fetch content types if needed
     if (contentTypes.length === 0) {
       fetchContentTypes().catch(err => {
         console.error("Error fetching content types:", err);
@@ -53,7 +50,6 @@ const FormEditor: React.FC = () => {
     }
     
     if (contentType) {
-      // Initialize form with content type defaults
       setFormName(`${contentType.name} Form`);
       setFormDescription(`Form for creating ${contentType.name}`);
       setSelectedFields(contentType.fields.map(field => field.id));
@@ -67,7 +63,6 @@ const FormEditor: React.FC = () => {
       return;
     }
     
-    // Here you would save the form to your store or database
     toast.success('Form created successfully!');
     navigate('/form-builder');
   };
@@ -75,7 +70,6 @@ const FormEditor: React.FC = () => {
   const handleAddField = () => {
     if (!contentType) return;
     
-    // Navigate to content type builder to add fields
     navigate(`/content-types/${contentTypeId}`);
   };
   

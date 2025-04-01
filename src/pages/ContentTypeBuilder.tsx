@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { CMSLayout } from '@/components/layout/CMSLayout';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -645,6 +644,9 @@ const ContentTypeBuilder: React.FC = () => {
         <DialogContent className="sm:max-w-[800px]">
           <DialogHeader>
             <DialogTitle>Form Preview</DialogTitle>
+            <DialogDescription>
+              Preview how your content type will appear as a form.
+            </DialogDescription>
           </DialogHeader>
           
           <div className="py-4">
