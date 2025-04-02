@@ -1,11 +1,11 @@
 
 import React from 'react';
 import { Field } from '@/stores/cmsStore';
-import { ValidationPreview } from './ValidationPreview';
+import { TriStateCheckbox } from './TriStateCheckbox';
+import { InputMask } from './InputMask';
+import { InputOTPField } from './InputOTP';
 
-// Props for extended field rendering
-export interface FieldRendererExtensionProps {
-  field: Field;
+interface FieldRendererOptions {
   value?: any;
   onChange?: (value: any) => void;
   error?: string;
@@ -13,37 +13,77 @@ export interface FieldRendererExtensionProps {
   isPreview?: boolean;
 }
 
-// Enhanced field renderer extensions to show validation rules
-export const FieldRendererExtensions: React.FC<{
-  field: Field;
-  isPreview?: boolean;
-}> = ({ field, isPreview = false }) => {
-  if (!isPreview) return null;
+export const renderExtendedField = (field: Field, options: FieldRendererOptions) => {
+  const { value, onChange, error, disabled, isPreview } = options;
+  const fieldId = `field-${field.id}`;
+  const isRequired = field.validation?.required;
   
-  return (
-    <div className="field-extensions">
-      <ValidationPreview field={field} />
-    </div>
-  );
-};
-
-// Function to render extended field types
-export const renderExtendedField = (
-  field: Field, 
-  props: FieldRendererExtensionProps
-): React.ReactNode | null => {
-  // This function will be used to render custom field types
-  // You can implement custom field type rendering logic here
-  // For example:
   switch (field.type) {
-    case 'inputgroup':
-      return <div className="custom-input-group">{props.field.label}</div>;
+    case 'tristatecheckbox':
+      return (
+        <TriStateCheckbox
+          id={fieldId}
+          label={field.label}
+          value={value}
+          onChange={onChange}
+          description={field.description}
+          disabled={disabled || isPreview}
+          required={isRequired}
+          error={error}
+        />
+      );
+      
     case 'inputmask':
-      return <div className="custom-input-mask">{props.field.label}</div>;
+      return (
+        <InputMask
+          id={fieldId}
+          label={field.label}
+          value={value}
+          onChange={onChange}
+          description={field.description}
+          placeholder={field.placeholder}
+          mask={field.uiOptions?.mask || ''}
+          disabled={disabled || isPreview}
+          required={isRequired}
+          error={error}
+        />
+      );
+      
+    case 'inputotp':
+      return (
+        <InputOTPField
+          id={fieldId}
+          label={field.label}
+          value={value}
+          onChange={onChange}
+          description={field.description}
+          length={field.uiOptions?.length || 6}
+          required={isRequired}
+          disabled={disabled || isPreview}
+          error={error}
+          pattern={field.uiOptions?.pattern || '^[0-9]+$'}
+          separator={field.uiOptions?.separator !== false}
+        />
+      );
+      
     case 'inputswitch':
-      return <div className="custom-input-switch">{props.field.label}</div>;
-    // Add cases for other custom field types
+      // InputSwitch is similar to toggle, but with a different UI
+      // For now, we'll use the built-in toggle functionality
+      return null; // Falls back to default toggle
+      
+    case 'treeselect':
+    case 'listbox':
+    case 'mention':
+    case 'selectbutton':
+    case 'rating':
+    case 'multistatecheckbox':
+    case 'multiselect':
+      // These will require more complex implementations
+      // For now, return null to use the default handling
+      return null;
+      
     default:
+      // Not a custom field, return null to use default handling
       return null;
   }
 };
